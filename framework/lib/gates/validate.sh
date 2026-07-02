@@ -118,10 +118,10 @@ validate_gate() {
     # Step 7: Validate condition is executable (valid bash)
     # First check if condition is a string (not an object or array)
     local condition_type
-    condition_type=$(yq 'type' <<< "$(yq '.condition' "$gate_file" 2>/dev/null)" 2>/dev/null) || condition_type=""
+    condition_type=$(yq '.condition | type' "$gate_file" 2>/dev/null) || condition_type=""
 
     # If condition is not a string, it's invalid
-    if [[ -n "$condition_type" ]] && [[ "$condition_type" != "string" ]]; then
+    if [[ -n "$condition_type" ]] && [[ "$condition_type" != "!!str" ]]; then
         echo "ERROR: Non-executable condition in $filename (condition must be a string, not $condition_type)"
         return 1
     fi
@@ -159,3 +159,27 @@ CONDITION_EOF
 
 # Export the function so it can be sourced
 export -f validate_gate is_in_array
+
+# =============================================================================
+# CLI entry point
+#
+# Allows direct execution: validate specific file args, or all gates in
+# ~/.claude/gates if no args are given. validate_gate already prints its own
+# ERROR/success messages, so this guard only tracks the aggregate exit code.
+# =============================================================================
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    exit_code=0
+    if [[ $# -gt 0 ]]; then
+        targets=("$@")
+    else
+        shopt -s nullglob
+        targets=("$HOME/.claude/gates"/*.yaml)
+        shopt -u nullglob
+    fi
+    for gate_file in "${targets[@]}"; do
+        if ! validate_gate "$gate_file"; then
+            exit_code=1
+        fi
+    done
+    exit $exit_code
+fi
