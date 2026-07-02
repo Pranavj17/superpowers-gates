@@ -70,7 +70,7 @@ No match → Allow (fail-open)
 
 **Developers?** Clone the framework:
 ```bash
-git clone https://github.com/pranav/superpowers-gates
+git clone https://github.com/Pranavj17/superpowers-gates
 cd superpowers-gates
 cp framework/lib/examples/* ~/.claude/gates/
 # Configure manually in .claude/settings.json
@@ -86,7 +86,7 @@ Both paths use the same framework core — just different distribution methods.
 
 ```bash
 # Clone framework to local installation
-git clone https://github.com/pranav/superpowers-gates ~/.claude/gates-framework
+git clone https://github.com/Pranavj17/superpowers-gates ~/.claude/gates-framework
 
 # Create gates directory
 mkdir -p ~/.claude/gates

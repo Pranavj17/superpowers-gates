@@ -39,7 +39,7 @@ The hook gates framework is fully implemented, tested, and documented:
 
 1. **Install Framework**
    ```bash
-   git clone https://github.com/pranav/claude-gates-framework ~/.claude/gates-framework
+   git clone https://github.com/Pranavj17/superpowers-gates ~/.claude/gates-framework
    mkdir -p ~/.claude/gates
    cp -r ~/.claude/gates-framework/lib/examples/* ~/.claude/gates/
    ```

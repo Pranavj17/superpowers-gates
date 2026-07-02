@@ -1,0 +1,19 @@
+{
+  "name": "superpowers-gates",
+  "displayName": "Superpowers Gates",
+  "version": "1.0.0",
+  "description": "YAML-based permission and safety gates for Claude Code hooks. Create, validate, and manage gates without JSON escaping.",
+  "author": {
+    "name": "Pranavj17"
+  },
+  "homepage": "https://github.com/Pranavj17/superpowers-gates",
+  "repository": "https://github.com/Pranavj17/superpowers-gates",
+  "license": "MIT",
+  "keywords": ["hooks", "gates", "permissions", "safety", "claude-code"],
+  "mcpServers": {
+    "superpowers-gates": {
+      "command": "python3",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/skill/mcp_server.py"]
+    }
+  }
+}

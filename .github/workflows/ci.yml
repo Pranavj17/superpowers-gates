@@ -45,7 +45,7 @@ jobs:
       - name: Check version sync
         run: |
           VERSION=$(cat VERSION)
-          PLUGIN_VERSION=$(python3 -c "import json;print(json.load(open('skill/plugin.json'))['version'])")
+          PLUGIN_VERSION=$(python3 -c "import json;print(json.load(open('.claude-plugin/plugin.json'))['version'])")
           if [ "$VERSION" != "$PLUGIN_VERSION" ]; then
             echo "❌ Version mismatch: VERSION=$VERSION, plugin.json=$PLUGIN_VERSION"
             exit 1

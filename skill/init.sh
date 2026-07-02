@@ -2,7 +2,7 @@
 set -euo pipefail
 
 GATES_FRAMEWORK="$HOME/.claude/gates-framework"
-REPO_URL="https://github.com/pranav/superpowers-gates"
+REPO_URL="https://github.com/Pranavj17/superpowers-gates"
 
 echo "🚀 Setting up Superpowers Gates Framework..."
 

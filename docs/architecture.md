@@ -11,7 +11,7 @@ superpowers-gates/
 │       ├── examples/   # Production-ready gates
 │       └── tests/      # 24 tests (100% coverage)
 ├── skill/              # Claude Code skill (MCP wrapper)
-│   ├── plugin.json     # Registry manifest
+│   (manifest: .claude-plugin/plugin.json at repo root)
 │   ├── mcp_server.py   # MCP tools + prompts
 │   ├── init.sh         # First-install setup
 │   └── tests/          # Skill integration tests
@@ -34,7 +34,7 @@ superpowers-gates/
 
 ### Version Synchronization
 - Single `VERSION` file at repo root
-- CI enforces: `framework/VERSION` == `skill/plugin.json` version
+- CI enforces: `framework/VERSION` == `.claude-plugin/plugin.json` version
 
 ---
 
