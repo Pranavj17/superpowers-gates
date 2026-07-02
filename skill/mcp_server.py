@@ -182,6 +182,8 @@ def handle_validate_gate(request):
 
     # Check if it's a file path
     gate_path = None
+    is_temp = False
+
     if gate_content.startswith("/") or gate_content.startswith("~"):
         expanded = Path(gate_content).expanduser()
         if expanded.exists():
@@ -192,13 +194,10 @@ def handle_validate_gate(request):
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             f.write(gate_content)
             gate_path = Path(f.name)
+            is_temp = True
 
     try:
         is_valid, error = validate_gate_file(gate_path)
-
-        # Clean up temporary file
-        if not gate_content.startswith("/") and not gate_content.startswith("~"):
-            gate_path.unlink()
 
         if is_valid:
             return {
@@ -248,6 +247,13 @@ def handle_validate_gate(request):
                 ]
             }
         }
+    finally:
+        # Always clean up temp file
+        if is_temp and gate_path:
+            try:
+                gate_path.unlink()
+            except Exception:
+                pass  # Ignore cleanup errors
 
 
 def handle_tool_call(request):

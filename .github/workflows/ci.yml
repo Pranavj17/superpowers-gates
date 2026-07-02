@@ -14,10 +14,12 @@ jobs:
 
       - name: Run framework tests
         run: |
-          bash framework/lib/tests/helpers.test.sh || true
-          bash framework/lib/tests/gate-runner.test.sh || true
-          bash framework/lib/tests/validate.test.sh || true
-          bash framework/lib/tests/integration.test.sh || true
+          result=0
+          bash framework/lib/tests/helpers.test.sh || result=$?
+          bash framework/lib/tests/gate-runner.test.sh || result=$?
+          bash framework/lib/tests/validate.test.sh || result=$?
+          bash framework/lib/tests/integration.test.sh || result=$?
+          exit $result
 
   skill-tests:
     runs-on: ubuntu-latest

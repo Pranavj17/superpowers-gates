@@ -86,7 +86,7 @@ Both paths use the same framework core — just different distribution methods.
 
 ```bash
 # Clone framework to local installation
-git clone https://github.com/pranav/claude-gates-framework ~/.claude/gates-framework
+git clone https://github.com/pranav/superpowers-gates ~/.claude/gates-framework
 
 # Create gates directory
 mkdir -p ~/.claude/gates
