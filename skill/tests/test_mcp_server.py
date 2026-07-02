@@ -81,7 +81,7 @@ def test_validate_gates_empty_gates_dir_reports_zero(framework_env):
 
 def test_validate_gate_valid_yaml_returns_valid_true(framework_env):
     """A valid gate YAML string, validated via the real validate.sh, is reported valid."""
-    request = {"id": 1, "params": {"gate_content": VALID_GATE_YAML}}
+    request = {"id": 1, "params": {"name": "validate-gate", "arguments": {"gate_content": VALID_GATE_YAML}}}
     response = mcp_server.handle_validate_gate(request)
 
     content = response["result"]["content"][0]["text"]
@@ -93,7 +93,7 @@ def test_validate_gate_valid_yaml_returns_valid_true(framework_env):
 
 def test_validate_gate_invalid_yaml_returns_valid_false(framework_env):
     """A gate missing the required 'decision' field is reported invalid."""
-    request = {"id": 1, "params": {"gate_content": INVALID_GATE_YAML}}
+    request = {"id": 1, "params": {"name": "validate-gate", "arguments": {"gate_content": INVALID_GATE_YAML}}}
     response = mcp_server.handle_validate_gate(request)
 
     content = response["result"]["content"][0]["text"]
@@ -109,7 +109,7 @@ def test_validate_gate_cleans_up_temp_file(framework_env):
     pattern = str(Path(tempfile.gettempdir()) / "*.yaml")
     before = set(glob.glob(pattern))
 
-    request = {"id": 1, "params": {"gate_content": VALID_GATE_YAML}}
+    request = {"id": 1, "params": {"name": "validate-gate", "arguments": {"gate_content": VALID_GATE_YAML}}}
     mcp_server.handle_validate_gate(request)
 
     after = set(glob.glob(pattern))

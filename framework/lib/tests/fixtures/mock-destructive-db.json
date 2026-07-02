@@ -1,5 +1,5 @@
 {
-  "tool": "Bash",
+  "tool_name": "Bash",
   "tool_input": {
     "command": "mix ecto.drop"
   }

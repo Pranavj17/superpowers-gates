@@ -73,7 +73,7 @@ test_rule_2_blocks_destructive_db() {
     cp "$LIB_DIR"/examples/*.yaml "$HOME/.claude/gates/"
 
     # Input: mix ecto.drop command
-    local input='{"tool":"Bash","tool_input":{"command":"mix ecto.drop"}}'
+    local input='{"tool_name":"Bash","tool_input":{"command":"mix ecto.drop"}}'
     local output=$(echo "$input" | bash "$LIB_DIR/gates/runner.sh" PreToolUse 2>/dev/null || true)
 
     if assert_contains "$output" "permissionDecision.*ask"; then
@@ -93,7 +93,7 @@ test_rule_4_blocks_root_md() {
     echo "Test 3: Rule 4 (no-docs-violation) blocks /OAUTH.md"
 
     # Input: Write to root .md file
-    local input='{"tool":"Write","tool_input":{"file_path":"/OAUTH.md"}}'
+    local input='{"tool_name":"Write","tool_input":{"file_path":"/OAUTH.md"}}'
     local output=$(echo "$input" | bash "$LIB_DIR/gates/runner.sh" PreToolUse 2>/dev/null || true)
 
     if assert_contains "$output" "permissionDecision.*deny"; then
@@ -113,7 +113,7 @@ test_runner_allows_safe_actions() {
     echo "Test 4: Runner allows safe actions (fail-open)"
 
     # Input: Safe bash command
-    local input='{"tool":"Bash","tool_input":{"command":"ls -la /tmp"}}'
+    local input='{"tool_name":"Bash","tool_input":{"command":"ls -la /tmp"}}'
     local output=$(echo "$input" | bash "$LIB_DIR/gates/runner.sh" PreToolUse 2>/dev/null || true)
 
     if assert_empty "$output"; then

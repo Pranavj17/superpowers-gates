@@ -7,13 +7,13 @@
 # against hook events and tool inputs, returning permission decisions.
 #
 # Usage:
-#   echo '{"tool":"Bash","tool_input":{"command":"..."}}' | runner.sh <hook>
+#   echo '{"tool_name":"Bash","tool_input":{"command":"..."}}' | runner.sh <hook>
 #
 # Arguments:
 #   $1 - Hook event name (e.g., "PreToolUse")
 #
 # Input (stdin):
-#   JSON object with structure: {"tool":"...", "tool_input":{...}}
+#   JSON object with structure: {"tool_name":"...", "tool_input":{...}}
 #
 # Output (if gate triggers):
 #   JSON decision: {"hookSpecificOutput":{"hookEventName":"...","permissionDecision":"...","permissionDecisionReason":"..."}}
@@ -63,7 +63,7 @@ for gate_file in $(find "$GATES_DIR" -maxdepth 1 -name "*.yaml" -type f | sort);
     fi
 
     # Extract the tool name from the input JSON
-    tool_name=$(echo "$INPUT_JSON" | jq -r '.tool' 2>/dev/null || echo "")
+    tool_name=$(echo "$INPUT_JSON" | jq -r '.tool_name // .tool' 2>/dev/null || echo "")
 
     # Skip if we couldn't extract tool name
     if [ -z "$tool_name" ]; then

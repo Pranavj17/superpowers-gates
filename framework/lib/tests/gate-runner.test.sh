@@ -280,7 +280,7 @@ test_rule_4_allows_docs_md() {
         "Rule 4: .md files must live under /docs (exceptions: CLAUDE.md, README.md, directory claude.md)"
 
     # Create input for /docs/oauth.md (allowed location)
-    local input='{"tool":"Write","tool_input":{"file_path":"docs/oauth.md"}}'
+    local input='{"tool_name":"Write","tool_input":{"file_path":"docs/oauth.md"}}'
     local result=$(run_runner "PreToolUse" "$input" || echo "")
 
     # File in /docs → should not trigger gate → allow (empty output)

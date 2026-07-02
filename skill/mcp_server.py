@@ -18,8 +18,16 @@ def get_gates_directory():
 
 
 def get_framework_path():
-    """Get the framework installation path."""
-    return Path.home() / ".claude" / "gates-framework"
+    """Get the framework installation path.
+
+    Prefers the init.sh install location, but falls back to the copy
+    bundled alongside this server (the plugin ships the whole monorepo),
+    so tools work even before init.sh has run.
+    """
+    installed = Path.home() / ".claude" / "gates-framework"
+    if (installed / "framework" / "lib" / "gates" / "validate.sh").exists():
+        return installed
+    return Path(__file__).resolve().parent.parent
 
 
 def validate_gate_file(gate_path):
@@ -170,7 +178,9 @@ def handle_validate_gates(request):
 def handle_validate_gate(request):
     """Validate a single gate."""
     params = request.get("params", {})
-    gate_content = params.get("gate_content", "")
+    # MCP tools/call nests tool inputs under params.arguments
+    arguments = params.get("arguments") or params
+    gate_content = arguments.get("gate_content", "")
 
     if not gate_content:
         return {
