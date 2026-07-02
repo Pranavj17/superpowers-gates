@@ -3,5 +3,18 @@
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "90",
     "MAX_THINKING_TOKENS": "10000"
   },
-  "verbose": true
+  "verbose": true,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash lib/gates/runner.sh PreToolUse",
+            "statusMessage": "Checking gates..."
+          }
+        ]
+      }
+    ]
+  }
 }
