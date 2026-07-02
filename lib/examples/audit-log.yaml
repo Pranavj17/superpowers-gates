@@ -1,0 +1,11 @@
+name: "audit-log"
+description: "Audit trail for all tool executions (PostToolUse)"
+hook: "PostToolUse"
+matcher: "*"
+condition: |
+  # Always trigger: log all tool use events
+  exit 0
+decision: "allow"
+message: "Tool execution logged for audit trail"
+tags: ["audit", "logging"]
+severity: "low"

@@ -1,0 +1,27 @@
+name: "no-docs-violation"
+description: "Enforce Rule 4: .md files must live under /docs"
+hook: "PreToolUse"
+matcher: "Write|Edit"
+condition: |
+  file=$(jq -r '.tool_input.file_path')
+  base="${file##*/}"
+
+  # Only apply to .md files
+  [[ "$base" == *.md ]] || exit 1
+
+  # Allowed locations
+  case "$file" in
+    */docs/*|docs/*) exit 1 ;;  # Allowed
+  esac
+
+  # Allowed filenames
+  case "$base" in
+    CLAUDE.md|README.md|claude.md) exit 1 ;;  # Allowed
+  esac
+
+  # Everything else denied
+  exit 0
+decision: "deny"
+message: "Rule 4: .md files must live under /docs (exceptions: CLAUDE.md, README.md, directory claude.md)"
+tags: ["documentation", "rule-4"]
+severity: "medium"

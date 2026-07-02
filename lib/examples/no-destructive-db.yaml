@@ -1,0 +1,10 @@
+name: "no-destructive-db"
+description: "Prevent mix ecto.create/drop/reset without explicit approval (Rule 2)"
+hook: "PreToolUse"
+matcher: "Bash"
+condition: |
+  jq -r '.tool_input.command' | grep -qE '\bmix +ecto\.(create|drop|reset)\b'
+decision: "ask"
+message: "Rule 2: Destructive DB command requires explicit confirmation"
+tags: ["security", "database", "rule-2"]
+severity: "high"
