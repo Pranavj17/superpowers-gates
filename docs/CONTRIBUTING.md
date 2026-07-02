@@ -12,10 +12,10 @@
 
 ### Step 1: Write the Gate File
 
-Create a new `.yaml` file in `lib/examples/`:
+Create a new `.yaml` file in `framework/lib/examples/`:
 
 ```bash
-cat > lib/examples/my-gate.yaml << 'EOF'
+cat > framework/lib/examples/my-gate.yaml << 'EOF'
 name: "my-gate"
 description: "Clear description of what this gate does"
 hook: "PreToolUse"
@@ -34,18 +34,18 @@ EOF
 
 ```bash
 # Test with sample input
-echo '{"tool":"Bash","tool_input":{"command":"your command"}}' | bash lib/gates/runner.sh PreToolUse
+echo '{"tool":"Bash","tool_input":{"command":"your command"}}' | bash framework/lib/gates/runner.sh PreToolUse
 ```
 
 ### Step 3: Validate the Gate
 
 ```bash
-bash lib/gates/validate.sh lib/examples/my-gate.yaml
+bash framework/lib/gates/validate.sh framework/lib/examples/my-gate.yaml
 ```
 
 ### Step 4: Add to Test Suite
 
-In `lib/tests/gate-runner.test.sh`, add tests:
+In `framework/lib/tests/gate-runner.test.sh`, add tests:
 
 ```bash
 test_my_gate_triggers() {
@@ -62,7 +62,7 @@ GATE
 ### Step 5: Commit
 
 ```bash
-git add lib/examples/my-gate.yaml lib/tests/gate-runner.test.sh docs/EXAMPLES.md
+git add framework/lib/examples/my-gate.yaml framework/lib/tests/gate-runner.test.sh docs/EXAMPLES.md
 git commit -m "feat(gates): add my-gate example for XYZ rule"
 ```
 
@@ -114,7 +114,7 @@ condition: |
 
 ❌ **Overly complex condition** — Keep it simple and readable  
 ❌ **Vague message** — Tell user exactly what rule they violated  
-❌ **Missing required fields** — Validate with `bash lib/gates/validate.sh`  
+❌ **Missing required fields** — Validate with `bash framework/lib/gates/validate.sh`  
 ❌ **Condition that doesn't exit cleanly** — Always `exit 0` or `exit 1` explicitly  
 ❌ **Too broad matcher** — Be specific to tools that make sense  
 

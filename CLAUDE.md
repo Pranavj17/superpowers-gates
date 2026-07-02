@@ -18,7 +18,7 @@ claude-x/
 │   ├── hooks/          # Hook implementations
 │   ├── agents/         # Custom agent definitions
 │   └── settings.json   # Project configuration
-├── lib/                # Hook framework library
+├── framework/lib/                # Hook framework library
 ├── tests/              # Hook pattern tests
 ├── docs/               # Design specs & documentation
 └── examples/           # Example hook configurations
@@ -29,8 +29,8 @@ claude-x/
 The hook gates framework is fully implemented, tested, and documented:
 
 - ✅ **Design & Specification** — `docs/superpowers/specs/2026-07-02-hook-gates-framework-design.md`
-- ✅ **Core Implementation** — Gate executor (`lib/gates/runner.sh`), validator (`lib/gates/validate.sh`), JSON schema (`lib/gates/schema.json`)
-- ✅ **Helper Functions** — Reusable bash/jq filters (`lib/gates/helpers.sh`)
+- ✅ **Core Implementation** — Gate executor (`framework/lib/gates/runner.sh`), validator (`framework/lib/gates/validate.sh`), JSON schema (`framework/lib/gates/schema.json`)
+- ✅ **Helper Functions** — Reusable bash/jq filters (`framework/lib/gates/helpers.sh`)
 - ✅ **Test Suite** — 30 unit tests across 6 test files (100% passing)
 - ✅ **Example Gates** — 3 production-ready gates (Rule 2, Rule 4, Audit Log)
 - ✅ **Documentation** — GETTING_STARTED, SCHEMA_REFERENCE, EXAMPLES, CONTRIBUTING guides
