@@ -92,10 +92,10 @@ git clone https://github.com/pranav/superpowers-gates ~/.claude/gates-framework
 mkdir -p ~/.claude/gates
 
 # Copy example gates
-cp -r ~/.claude/gates-framework/lib/examples/* ~/.claude/gates/
+cp -r ~/.claude/gates-framework/framework/lib/examples/* ~/.claude/gates/
 
 # Validate gates
-bash ~/.claude/gates-framework/lib/gates/validate.sh
+bash ~/.claude/gates-framework/framework/lib/gates/validate.sh
 ```
 
 ### 2. Copy Example Gates
@@ -118,7 +118,7 @@ Add to `.claude/settings.json`:
     "PreToolUse": [{
       "hooks": [{
         "type": "command",
-        "command": "bash ~/.claude/gates-framework/lib/gates/runner.sh PreToolUse",
+        "command": "bash ~/.claude/gates-framework/framework/lib/gates/runner.sh PreToolUse",
         "statusMessage": "Checking gates..."
       }]
     }]
@@ -146,29 +146,36 @@ severity: "low"
 EOF
 
 # Validate it
-bash ~/.claude/gates-framework/lib/gates/validate.sh ~/.claude/gates/no-npm-install.yaml
+bash ~/.claude/gates-framework/framework/lib/gates/validate.sh ~/.claude/gates/no-npm-install.yaml
 ```
 
 ## Project Structure
 
 ```
 claude-x/
-├── lib/
-│   ├── gates/
-│   │   ├── runner.sh              # Gate executor (hook interface)
-│   │   ├── validate.sh            # YAML validator
-│   │   ├── helpers.sh             # Reusable bash/jq functions
-│   │   └── schema.json            # JSON Schema for validation
-│   ├── examples/
-│   │   ├── no-destructive-db.yaml # Rule 2: DB safety
-│   │   ├── no-docs-violation.yaml # Rule 4: Docs location
-│   │   └── audit-log.yaml         # PostToolUse audit example
-│   └── tests/
-│       ├── helpers.test.sh        # Helper function tests (6 tests)
-│       ├── gate-runner.test.sh    # Runner tests (9 tests)
-│       ├── validate.test.sh       # Validator tests (5 tests)
-│       ├── integration.test.sh    # End-to-end tests (4 tests)
-│       └── fixtures/              # Mock inputs for testing
+├── framework/
+│   ├── VERSION
+│   └── lib/
+│       ├── gates/
+│       │   ├── runner.sh              # Gate executor (hook interface)
+│       │   ├── validate.sh            # YAML validator
+│       │   ├── helpers.sh             # Reusable bash/jq functions
+│       │   └── schema.json            # JSON Schema for validation
+│       ├── examples/
+│       │   ├── no-destructive-db.yaml # Rule 2: DB safety
+│       │   ├── no-docs-violation.yaml # Rule 4: Docs location
+│       │   └── audit-log.yaml         # PostToolUse audit example
+│       └── tests/
+│           ├── helpers.test.sh        # Helper function tests (6 tests)
+│           ├── gate-runner.test.sh    # Runner tests (9 tests)
+│           ├── validate.test.sh       # Validator tests (5 tests)
+│           ├── integration.test.sh    # End-to-end tests (4 tests)
+│           └── fixtures/              # Mock inputs for testing
+├── skill/
+│   ├── mcp_server.py               # Python MCP server
+│   ├── init.sh                     # Setup script
+│   ├── update_settings.py          # Hook auto-registration
+│   └── tests/                      # Skill tests
 ├── docs/
 │   ├── superpowers/
 │   │   ├── specs/2026-07-02-hook-gates-framework-design.md
@@ -199,10 +206,10 @@ Total:                24/24 passed ✅
 
 **Run all tests:**
 ```bash
-bash lib/tests/helpers.test.sh
-bash lib/tests/gate-runner.test.sh
-bash lib/tests/validate.test.sh
-bash lib/tests/integration.test.sh
+bash framework/lib/tests/helpers.test.sh
+bash framework/lib/tests/gate-runner.test.sh
+bash framework/lib/tests/validate.test.sh
+bash framework/lib/tests/integration.test.sh
 ```
 
 ## Documentation

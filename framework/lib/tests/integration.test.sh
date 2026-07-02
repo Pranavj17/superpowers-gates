@@ -8,6 +8,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 # Test framework setup
 TESTS_PASSED=0
 TESTS_FAILED=0
@@ -40,11 +43,11 @@ assert_empty() {
 test_all_example_gates_valid() {
     echo "Test 1: All example gates are valid"
 
-    local gates_dir="lib/examples"
+    local gates_dir="$LIB_DIR/examples"
     local pass=true
 
     for gate in "$gates_dir"/*.yaml; do
-        if ! bash lib/gates/validate.sh "$gate" > /dev/null 2>&1; then
+        if ! bash "$LIB_DIR/gates/validate.sh" "$gate" > /dev/null 2>&1; then
             echo "✗ FAIL: Gate validation failed for $(basename $gate)"
             pass=false
         fi
@@ -67,11 +70,11 @@ test_rule_2_blocks_destructive_db() {
 
     # Set up test gates
     mkdir -p "$HOME/.claude/gates"
-    cp lib/examples/*.yaml "$HOME/.claude/gates/"
+    cp "$LIB_DIR"/examples/*.yaml "$HOME/.claude/gates/"
 
     # Input: mix ecto.drop command
     local input='{"tool":"Bash","tool_input":{"command":"mix ecto.drop"}}'
-    local output=$(echo "$input" | bash lib/gates/runner.sh PreToolUse 2>/dev/null || true)
+    local output=$(echo "$input" | bash "$LIB_DIR/gates/runner.sh" PreToolUse 2>/dev/null || true)
 
     if assert_contains "$output" "permissionDecision.*ask"; then
         echo "✓ PASS: Rule 2 blocks destructive DB command with decision=ask"
@@ -91,7 +94,7 @@ test_rule_4_blocks_root_md() {
 
     # Input: Write to root .md file
     local input='{"tool":"Write","tool_input":{"file_path":"/OAUTH.md"}}'
-    local output=$(echo "$input" | bash lib/gates/runner.sh PreToolUse 2>/dev/null || true)
+    local output=$(echo "$input" | bash "$LIB_DIR/gates/runner.sh" PreToolUse 2>/dev/null || true)
 
     if assert_contains "$output" "permissionDecision.*deny"; then
         echo "✓ PASS: Rule 4 blocks root .md file with decision=deny"
@@ -111,7 +114,7 @@ test_runner_allows_safe_actions() {
 
     # Input: Safe bash command
     local input='{"tool":"Bash","tool_input":{"command":"ls -la /tmp"}}'
-    local output=$(echo "$input" | bash lib/gates/runner.sh PreToolUse 2>/dev/null || true)
+    local output=$(echo "$input" | bash "$LIB_DIR/gates/runner.sh" PreToolUse 2>/dev/null || true)
 
     if assert_empty "$output"; then
         echo "✓ PASS: No gates triggered, action allowed (fail-open)"

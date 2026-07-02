@@ -5,15 +5,17 @@
 ```
 superpowers-gates/
 ├── framework/          # Core gate execution engine (unchanged)
-│   ├── lib/gates/      # Runner, validator, helpers, schema
-│   ├── lib/examples/   # Production-ready gates
-│   ├── lib/tests/      # 24 tests (100% coverage)
-│   └── docs/           # User guides
+│   ├── VERSION         # Framework version symlink
+│   └── lib/
+│       ├── gates/      # Runner, validator, helpers, schema
+│       ├── examples/   # Production-ready gates
+│       └── tests/      # 24 tests (100% coverage)
 ├── skill/              # Claude Code skill (MCP wrapper)
 │   ├── plugin.json     # Registry manifest
 │   ├── mcp_server.py   # MCP tools + prompts
 │   ├── init.sh         # First-install setup
 │   └── tests/          # Skill integration tests
+├── docs/               # User guides
 ├── .github/workflows/  # CI for both framework + skill
 ├── VERSION             # Single source for versioning
 └── README.md           # Dual-path entry point
