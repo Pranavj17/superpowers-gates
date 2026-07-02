@@ -1,0 +1,50 @@
+{
+  "name": "superpowers-gates",
+  "displayName": "Superpowers Gates",
+  "version": "1.0.0",
+  "description": "YAML-based permission and safety gates for Claude Code hooks. Create, validate, and manage gates without JSON escaping.",
+  "author": "pranav",
+  "homepage": "https://github.com/pranav/superpowers-gates",
+  "repository": "https://github.com/pranav/superpowers-gates",
+  "license": "MIT",
+  "mcpServer": {
+    "command": "python3",
+    "args": ["{pluginDir}/mcp_server.py"]
+  },
+  "tools": [
+    {
+      "name": "validate-gates",
+      "description": "Validate all installed gates in ~/.claude/gates/",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "validate-gate",
+      "description": "Validate a single gate YAML file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "gate_content": {
+            "type": "string",
+            "description": "YAML content or filename to validate"
+          }
+        },
+        "required": ["gate_content"]
+      }
+    }
+  ],
+  "prompts": [
+    {
+      "name": "create-gate",
+      "description": "Interactive wizard to create a new permission gate"
+    },
+    {
+      "name": "list-gates",
+      "description": "Discover and list installed gates"
+    }
+  ],
+  "keywords": ["hooks", "gates", "permissions", "safety", "claude-code"],
+  "category": "Utilities"
+}
