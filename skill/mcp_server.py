@@ -7,7 +7,42 @@ Implements tools for validating gates and prompts for interactive gate creation.
 import json
 import sys
 import os
+import subprocess
+import tempfile
 from pathlib import Path
+
+
+def get_gates_directory():
+    """Get the gates directory path."""
+    return Path.home() / ".claude" / "gates"
+
+
+def get_framework_path():
+    """Get the framework installation path."""
+    return Path.home() / ".claude" / "gates-framework"
+
+
+def validate_gate_file(gate_path):
+    """Validate a single gate file using framework's validate.sh."""
+    framework = get_framework_path()
+    validator = framework / "framework" / "lib" / "gates" / "validate.sh"
+
+    if not validator.exists():
+        return False, "Framework validator not found"
+
+    try:
+        result = subprocess.run(
+            ["bash", str(validator), str(gate_path)],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode == 0:
+            return True, None
+        else:
+            return False, result.stderr or "Validation failed"
+    except Exception as e:
+        return False, str(e)
 
 
 def handle_initialize(request):
@@ -65,7 +100,46 @@ def handle_tools_list(request):
 
 def handle_validate_gates(request):
     """Validate all gates in ~/.claude/gates/."""
-    # TODO: Implement in Task 3
+    gates_dir = get_gates_directory()
+
+    valid_gates = []
+    invalid_gates = []
+
+    if not gates_dir.exists():
+        return {
+            "jsonrpc": "2.0",
+            "id": request.get("id"),
+            "result": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps({
+                            "valid_gates": [],
+                            "invalid_gates": [],
+                            "summary": "No gates directory found at ~/.claude/gates/"
+                        }, indent=2)
+                    }
+                ]
+            }
+        }
+
+    gate_files = sorted(gates_dir.glob("*.yaml"))
+
+    for gate_file in gate_files:
+        is_valid, error = validate_gate_file(gate_file)
+        gate_name = gate_file.stem
+
+        if is_valid:
+            valid_gates.append(gate_name)
+        else:
+            invalid_gates.append({
+                "file": gate_file.name,
+                "error": error
+            })
+
+    total = len(valid_gates) + len(invalid_gates)
+    summary = f"{len(valid_gates)}/{total} gates valid"
+
     return {
         "jsonrpc": "2.0",
         "id": request.get("id"),
@@ -73,7 +147,11 @@ def handle_validate_gates(request):
             "content": [
                 {
                     "type": "text",
-                    "text": "Validation not yet implemented"
+                    "text": json.dumps({
+                        "valid_gates": valid_gates,
+                        "invalid_gates": invalid_gates,
+                        "summary": summary
+                    }, indent=2)
                 }
             ]
         }
@@ -82,19 +160,94 @@ def handle_validate_gates(request):
 
 def handle_validate_gate(request):
     """Validate a single gate."""
-    # TODO: Implement in Task 4
-    return {
-        "jsonrpc": "2.0",
-        "id": request.get("id"),
-        "result": {
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Validation not yet implemented"
-                }
-            ]
+    params = request.get("params", {})
+    gate_content = params.get("gate_content", "")
+
+    if not gate_content:
+        return {
+            "jsonrpc": "2.0",
+            "id": request.get("id"),
+            "result": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps({
+                            "valid": False,
+                            "error": "gate_content parameter is required"
+                        }, indent=2)
+                    }
+                ]
+            }
         }
-    }
+
+    # Check if it's a file path
+    gate_path = None
+    if gate_content.startswith("/") or gate_content.startswith("~"):
+        expanded = Path(gate_content).expanduser()
+        if expanded.exists():
+            gate_path = expanded
+
+    # If not a file, create temporary file with content
+    if gate_path is None:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+            f.write(gate_content)
+            gate_path = Path(f.name)
+
+    try:
+        is_valid, error = validate_gate_file(gate_path)
+
+        # Clean up temporary file
+        if not gate_content.startswith("/") and not gate_content.startswith("~"):
+            gate_path.unlink()
+
+        if is_valid:
+            return {
+                "jsonrpc": "2.0",
+                "id": request.get("id"),
+                "result": {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": json.dumps({
+                                "valid": True,
+                                "message": "Gate is valid"
+                            }, indent=2)
+                        }
+                    ]
+                }
+            }
+        else:
+            return {
+                "jsonrpc": "2.0",
+                "id": request.get("id"),
+                "result": {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": json.dumps({
+                                "valid": False,
+                                "error": error
+                            }, indent=2)
+                        }
+                    ]
+                }
+            }
+    except Exception as e:
+        return {
+            "jsonrpc": "2.0",
+            "id": request.get("id"),
+            "result": {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": json.dumps({
+                            "valid": False,
+                            "error": str(e)
+                        }, indent=2)
+                    }
+                ]
+            }
+        }
 
 
 def handle_tool_call(request):
@@ -137,8 +290,50 @@ def handle_prompts_list(request):
 
 
 def handle_create_gate_prompt(request):
-    """Create-gate prompt."""
-    # TODO: Implement in Task 5
+    """Create-gate prompt for interactive gate creation."""
+    prompt_text = """
+# Create a New Permission Gate
+
+I'll help you create a new permission gate step-by-step. A gate is a YAML file that defines when Claude Code should ask for confirmation or deny an action.
+
+## What We'll Build
+
+Each gate needs:
+1. **name** — unique identifier (kebab-case, e.g., `no-npm-install`)
+2. **description** — what this gate protects against
+3. **hook** — when it runs (PreToolUse, PostToolUse)
+4. **matcher** — which tools it affects (Bash, Write, Edit, or *)
+5. **condition** — bash code that returns exit 0 to trigger
+6. **decision** — what to do if triggered (ask, deny, allow)
+7. **message** — reason shown to user
+
+## Let's Start
+
+Provide the gate details one section at a time. I'll validate each piece and show you the final YAML before saving.
+
+### Example Gate
+
+Here's a complete gate to use as reference:
+
+```yaml
+name: "no-npm-install"
+description: "Use npm ci instead of npm install when package-lock.json exists"
+hook: "PreToolUse"
+matcher: "Bash"
+condition: |
+  cmd=$(jq -r '.tool_input.command')
+  [ "$cmd" = "npm install" ] && [ -f package-lock.json ]
+decision: "ask"
+message: "Found package-lock.json. Use npm ci instead of npm install."
+tags: ["npm", "best-practice"]
+severity: "low"
+```
+
+## Ready?
+
+I'm ready to guide you through creating a new gate. What gate would you like to create?
+"""
+
     return {
         "jsonrpc": "2.0",
         "id": request.get("id"),
@@ -149,7 +344,7 @@ def handle_create_gate_prompt(request):
                     "role": "user",
                     "content": {
                         "type": "text",
-                        "text": "Prompt not yet implemented"
+                        "text": prompt_text
                     }
                 }
             ]
@@ -158,8 +353,58 @@ def handle_create_gate_prompt(request):
 
 
 def handle_list_gates_prompt(request):
-    """List-gates prompt."""
-    # TODO: Implement in Task 6
+    """List-gates prompt for discovering installed gates."""
+    gates_dir = get_gates_directory()
+
+    gates_list = ""
+    if gates_dir.exists():
+        gate_files = sorted(gates_dir.glob("*.yaml"))
+        if gate_files:
+            gates_list = "## Installed Gates\n\n"
+            for gate_file in gate_files:
+                gate_name = gate_file.stem
+                gates_list += f"- **{gate_name}**\n"
+            gates_list += "\n"
+        else:
+            gates_list = "No gates found in ~/.claude/gates/\n\n"
+    else:
+        gates_list = "Gates directory not found at ~/.claude/gates/\n\n"
+
+    prompt_text = f"""# Discover Your Gates
+
+Use this to explore installed gates and understand what protections are active.
+
+{gates_list}## About Gates
+
+Gates are YAML files that define permission rules for Claude Code:
+- **PreToolUse gates** run before a tool is executed
+- **PostToolUse gates** run after execution (for logging, analysis)
+- Each gate can allow, ask, or deny actions based on conditions
+
+## Available Tools
+
+Use these tools to manage gates:
+- `validate-gates` — Check all gates for syntax errors
+- `validate-gate` — Validate a single gate file
+
+## Create New Gates
+
+Use `/create-gate` to interactively build a custom gate for your workflow.
+
+## Examples
+
+The framework includes three production-ready example gates:
+1. **no-destructive-db** — Prevents mix ecto.create/drop/reset
+2. **no-docs-violation** — Enforces .md files in /docs
+3. **audit-log** — Logs all tool executions
+
+## Next Steps
+
+- Need help writing a gate? Use `/create-gate`
+- Found a problem? Run `validate-gates` to check
+- Want to understand the schema? Check framework docs
+"""
+
     return {
         "jsonrpc": "2.0",
         "id": request.get("id"),
@@ -170,7 +415,7 @@ def handle_list_gates_prompt(request):
                     "role": "user",
                     "content": {
                         "type": "text",
-                        "text": "Prompt not yet implemented"
+                        "text": prompt_text
                     }
                 }
             ]
