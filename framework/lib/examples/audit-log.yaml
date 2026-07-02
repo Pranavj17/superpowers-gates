@@ -1,10 +1,13 @@
 name: "audit-log"
-description: "Audit trail for all tool executions (PostToolUse)"
+description: "Audit trail for all tool executions. Side-effect gate: appends to ~/.claude/gates/audit.log then exits 1 so it never emits a decision"
 hook: "PostToolUse"
-matcher: "*"
+matcher: ".*"
 condition: |
-  # Always trigger: log all tool use events
-  exit 0
+  input=$(cat)
+  tool=$(jq -r '.tool_name // .tool // "?"' <<< "$input")
+  detail=$(jq -r '.tool_input.command // .tool_input.file_path // .tool_input.url // ""' <<< "$input" | tr '\n' ' ' | head -c 200)
+  echo "$(date '+%Y-%m-%dT%H:%M:%S%z') $tool $detail" >> "$HOME/.claude/gates/audit.log"
+  exit 1
 decision: "allow"
 message: "Tool execution logged for audit trail"
 tags: ["audit", "logging"]
