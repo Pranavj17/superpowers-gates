@@ -61,6 +61,25 @@ First match → Return decision (ask/deny/allow)
 No match → Allow (fail-open)
 ```
 
+## Choose Your Path
+
+**New users?** Install via Claude Code plugins:
+1. Search "superpowers gates" in Claude Code plugin registry
+2. Click Install
+3. Follow setup wizard
+
+**Developers?** Clone the framework:
+```bash
+git clone https://github.com/pranav/superpowers-gates
+cd superpowers-gates
+cp framework/lib/examples/* ~/.claude/gates/
+# Configure manually in .claude/settings.json
+```
+
+Both paths use the same framework core — just different distribution methods.
+
+---
+
 ## Quick Start
 
 ### 1. Install Framework
