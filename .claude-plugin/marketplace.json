@@ -1,0 +1,23 @@
+{
+  "name": "superpowers-gates",
+  "description": "Marketplace for the Superpowers Gates plugin — declarative YAML permission and safety gates for Claude Code hooks.",
+  "owner": {
+    "name": "Pranavj17",
+    "url": "https://github.com/Pranavj17"
+  },
+  "plugins": [
+    {
+      "name": "superpowers-gates",
+      "source": "./",
+      "description": "YAML-based permission and safety gates for Claude Code hooks. Create, validate, and manage gates without JSON escaping.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Pranavj17"
+      },
+      "homepage": "https://github.com/Pranavj17/superpowers-gates",
+      "license": "MIT",
+      "keywords": ["hooks", "gates", "permissions", "safety", "claude-code"],
+      "category": "utilities"
+    }
+  ]
+}

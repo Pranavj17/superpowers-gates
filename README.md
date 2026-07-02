@@ -63,10 +63,15 @@ No match → Allow (fail-open)
 
 ## Choose Your Path
 
-**New users?** Install via Claude Code plugins:
-1. Search "superpowers gates" in Claude Code plugin registry
-2. Click Install
-3. Follow setup wizard
+**New users?** Install as a Claude Code plugin (this repo is its own marketplace):
+```
+/plugin marketplace add Pranavj17/superpowers-gates
+/plugin install superpowers-gates@superpowers-gates
+```
+Then run the setup to install example gates and (optionally) register the hook:
+```bash
+bash ~/.claude/plugins/superpowers-gates/skill/init.sh
+```
 
 **Developers?** Clone the framework:
 ```bash
