@@ -1,0 +1,6 @@
+{
+  "superpowers-gates": {
+    "command": "python3",
+    "args": ["${CLAUDE_PLUGIN_ROOT}/skill/mcp_server.py"]
+  }
+}

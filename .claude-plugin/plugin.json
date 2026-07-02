@@ -9,11 +9,5 @@
   "homepage": "https://github.com/Pranavj17/superpowers-gates",
   "repository": "https://github.com/Pranavj17/superpowers-gates",
   "license": "MIT",
-  "keywords": ["hooks", "gates", "permissions", "safety", "claude-code"],
-  "mcpServers": {
-    "superpowers-gates": {
-      "command": "python3",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/skill/mcp_server.py"]
-    }
-  }
+  "keywords": ["hooks", "gates", "permissions", "safety", "claude-code"]
 }
