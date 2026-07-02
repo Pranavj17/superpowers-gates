@@ -5,6 +5,7 @@ Usage: python3 update_settings.py --auto
 """
 
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -63,6 +64,11 @@ def update_settings_auto():
     }
 
     settings["hooks"]["PreToolUse"].append(hook_config)
+
+    # Back up existing settings before overwriting, if present
+    if settings_path.exists():
+        backup_path = settings_path.with_suffix(settings_path.suffix + ".bak")
+        shutil.copy2(settings_path, backup_path)
 
     # Write settings back
     settings_path.parent.mkdir(parents=True, exist_ok=True)

@@ -20,7 +20,7 @@ mkdir -p "$HOME/.claude/gates"
 
 # Step 3: Copy examples
 echo "📋 Copying example gates..."
-cp "$GATES_FRAMEWORK/framework/lib/examples"/*.yaml "$HOME/.claude/gates/" 2>/dev/null || true
+cp "$GATES_FRAMEWORK/framework/lib/examples"/*.yaml "$HOME/.claude/gates/"
 
 # Step 4: Validate framework
 echo "🔍 Validating framework..."
@@ -37,7 +37,13 @@ echo "  y — Auto-register PreToolUse hook (recommended)"
 echo "  n — Skip setup, configure manually later"
 echo "  m — Show manual setup commands"
 echo ""
-read -p "Register hook? (y/n/m): " setup_choice
+if [ -t 0 ]; then
+  read -p "Register hook? (y/n/m): " setup_choice
+else
+  setup_choice="n"
+  echo "Non-interactive mode: skipping hook auto-registration."
+  echo "Run: python3 \"\$GATES_FRAMEWORK/skill/update_settings.py\" --auto"
+fi
 
 case "$setup_choice" in
   y|Y)

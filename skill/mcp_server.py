@@ -45,6 +45,15 @@ def validate_gate_file(gate_path):
         return False, str(e)
 
 
+def get_server_version():
+    """Read the framework version from the repo VERSION file, defaulting to 1.0.0."""
+    version_file = Path(__file__).parent.parent / "VERSION"
+    try:
+        return version_file.read_text().strip() or "1.0.0"
+    except Exception:
+        return "1.0.0"
+
+
 def handle_initialize(request):
     """Handle MCP initialize request."""
     return {
@@ -58,7 +67,7 @@ def handle_initialize(request):
             },
             "serverInfo": {
                 "name": "superpowers-gates",
-                "version": "1.0.0"
+                "version": get_server_version()
             }
         }
     }
@@ -458,36 +467,70 @@ def main():
         try:
             request = json.loads(line)
         except json.JSONDecodeError:
-            continue
-
-        method = request.get("method")
-        response = None
-
-        if method == "initialize":
-            response = handle_initialize(request)
-        elif method == "tools/list":
-            response = handle_tools_list(request)
-        elif method == "tools/call":
-            response = handle_tool_call(request)
-        elif method == "prompts/list":
-            response = handle_prompts_list(request)
-        elif method == "prompts/get":
-            response = handle_prompt(request)
-        elif method.startswith("notifications/"):
-            # Silently acknowledge notifications
-            continue
-        else:
-            response = {
+            # Can't recover an id from unparseable input; respond per JSON-RPC spec.
+            print(json.dumps({
                 "jsonrpc": "2.0",
-                "id": request.get("id"),
+                "id": None,
                 "error": {
-                    "code": -32601,
-                    "message": f"Method not found: {method}"
+                    "code": -32700,
+                    "message": "Parse error"
                 }
-            }
+            }, separators=(',', ':')))
+            sys.stdout.flush()
+            continue
 
-        if response:
-            print(json.dumps(response, separators=(',', ':')))
+        if not isinstance(request, dict):
+            print(json.dumps({
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {
+                    "code": -32600,
+                    "message": "Invalid Request"
+                }
+            }, separators=(',', ':')))
+            sys.stdout.flush()
+            continue
+
+        try:
+            method = request.get("method") or ""
+            response = None
+
+            if method == "initialize":
+                response = handle_initialize(request)
+            elif method == "tools/list":
+                response = handle_tools_list(request)
+            elif method == "tools/call":
+                response = handle_tool_call(request)
+            elif method == "prompts/list":
+                response = handle_prompts_list(request)
+            elif method == "prompts/get":
+                response = handle_prompt(request)
+            elif method.startswith("notifications/"):
+                # Silently acknowledge notifications
+                continue
+            else:
+                response = {
+                    "jsonrpc": "2.0",
+                    "id": request.get("id"),
+                    "error": {
+                        "code": -32601,
+                        "message": f"Method not found: {method}"
+                    }
+                }
+
+            if response:
+                print(json.dumps(response, separators=(',', ':')))
+                sys.stdout.flush()
+        except Exception as e:
+            # One bad message must not kill the server loop.
+            print(json.dumps({
+                "jsonrpc": "2.0",
+                "id": request.get("id") if isinstance(request, dict) else None,
+                "error": {
+                    "code": -32603,
+                    "message": f"Internal error: {e}"
+                }
+            }, separators=(',', ':')))
             sys.stdout.flush()
 
 
