@@ -1,0 +1,8 @@
+name: "non-executable-condition-gate"
+description: "Gate with a non-executable condition"
+hook: "PreToolUse"
+matcher: "Bash"
+condition:
+  invalid_bash_syntax: "[ missing closing bracket"
+decision: "allow"
+message: "This gate has a non-executable condition"

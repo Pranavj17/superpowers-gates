@@ -1,0 +1,8 @@
+name: "invalid-hook-gate"
+description: "Gate with an invalid hook value"
+hook: "InvalidHook"
+matcher: "Bash"
+condition:
+  command_contains: "test"
+decision: "allow"
+message: "This gate has an invalid hook"

@@ -1,0 +1,8 @@
+name: "invalid-decision-gate"
+description: "Gate with an invalid decision value"
+hook: "PreToolUse"
+matcher: "Bash"
+condition:
+  command_contains: "test"
+decision: "invalid_decision"
+message: "This gate has an invalid decision"
