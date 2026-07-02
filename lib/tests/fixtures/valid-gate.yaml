@@ -1,0 +1,8 @@
+name: "allow-test-commands"
+description: "Gate that allows test commands in Bash"
+hook: "PreToolUse"
+matcher: "Bash"
+condition:
+  command_contains: "test"
+decision: "ask"
+message: "Review this test command before execution"

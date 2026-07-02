@@ -1,0 +1,6 @@
+{
+  "tool": "Bash",
+  "tool_input": {
+    "command": "ls -la /tmp"
+  }
+}
