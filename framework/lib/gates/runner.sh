@@ -71,7 +71,11 @@ for gate_file in $(find "$GATES_DIR" -maxdepth 1 -name "*.yaml" -type f | sort);
     fi
 
     # Check if gate's matcher matches the tool name using regex
-    # matcher can be a single tool name or pipe-separated list like "Write|Edit"
+    # matcher can be a single tool name, a pipe-separated list like "Write|Edit",
+    # or "*" for all tools (translated: bare "*" is not a valid ERE)
+    if [ "$gate_matcher" = "*" ]; then
+        gate_matcher=".*"
+    fi
     if ! echo "$tool_name" | grep -qE "^($gate_matcher)$"; then
         continue
     fi

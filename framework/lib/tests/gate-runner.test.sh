@@ -322,6 +322,27 @@ test_first_match_wins() {
     teardown_test_environment
 }
 
+test_star_matcher_matches_all_tools() {
+    setup_test_environment
+
+    # Schema documents matcher "*" as "all tools"; bare "*" is invalid ERE so
+    # the runner must translate it
+    create_test_gate \
+        "star-matcher" \
+        "PreToolUse" \
+        "*" \
+        "true" \
+        "ask" \
+        "Star matcher gate triggered"
+
+    local input=$(cat "$FIXTURES_DIR/mock-preToolUse-write.json")
+    local result=$(run_runner "PreToolUse" "$input" || echo "")
+
+    assert_contains "test_star_matcher_matches_all_tools: gate triggers" "$result" "Star matcher gate triggered"
+
+    teardown_test_environment
+}
+
 # =============================================================================
 # Main: Run all tests and report results
 # =============================================================================
@@ -345,6 +366,7 @@ main() {
     test_rule_4_catches_root_md || true
     test_rule_4_allows_docs_md || true
     test_first_match_wins || true
+    test_star_matcher_matches_all_tools || true
 
     echo
     echo "======================================================================="
