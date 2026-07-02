@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  framework-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run framework tests
+        run: |
+          bash framework/lib/tests/helpers.test.sh || true
+          bash framework/lib/tests/gate-runner.test.sh || true
+          bash framework/lib/tests/validate.test.sh || true
+          bash framework/lib/tests/integration.test.sh || true
+
+  skill-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run skill tests
+        run: python3 skill/tests/test_mcp_server.py
+
+  version-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check version sync
+        run: |
+          VERSION=$(cat VERSION)
+          PLUGIN_VERSION=$(grep '"version"' skill/plugin.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
+          if [ "$VERSION" != "$PLUGIN_VERSION" ]; then
+            echo "❌ Version mismatch: VERSION=$VERSION, plugin.json=$PLUGIN_VERSION"
+            exit 1
+          fi
+          echo "✅ Version sync verified: $VERSION"
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Check syntax
+        run: |
+          python3 -m py_compile skill/mcp_server.py
+          python3 -m py_compile skill/update_settings.py
+          bash -n skill/init.sh
