@@ -354,6 +354,12 @@ tags: ["npm", "best-practice"]
 severity: "low"
 ```
 
+## Condition Gotchas (check every gate against these)
+
+1. **Stdin is consumed once.** If the condition calls `jq` more than once, capture stdin first: `input=$(cat)` then `jq ... <<< "$input"` — otherwise the second `jq` reads an empty stream and the gate silently never matches.
+2. **Gates run globally** (the runner is a user-level hook). A gate enforcing a project-specific rule must path-scope its condition with a `case "$file" in /path/to/repo/*) ;; *) exit 1 ;; esac` guard.
+3. **Test the condition before saving:** pipe a realistic hook JSON through it and assert the exit code for both a triggering and a non-triggering input.
+
 ## Ready?
 
 I'm ready to guide you through creating a new gate. What gate would you like to create?

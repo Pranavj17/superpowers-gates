@@ -68,17 +68,22 @@ No match → Allow (fail-open)
 /plugin marketplace add Pranavj17/superpowers-gates
 /plugin install superpowers-gates@superpowers-gates
 ```
-Then run the setup to install example gates and (optionally) register the hook:
+The plugin ships `hooks/hooks.json`, so the gate runner registers itself for
+PreToolUse and PostToolUse automatically — **no settings.json edits needed**.
+Just add gate files to `~/.claude/gates/` (copy the examples to start):
 ```bash
-bash ~/.claude/plugins/superpowers-gates/skill/init.sh
+mkdir -p ~/.claude/gates
+cp "$(ls -d ~/.claude/plugins/cache/superpowers-gates/superpowers-gates/*/ | tail -1)framework/lib/examples/"*.yaml ~/.claude/gates/
 ```
+If you previously registered the runner manually in settings.json, remove that
+entry after upgrading — otherwise every gate fires twice.
 
 **Developers?** Clone the framework:
 ```bash
 git clone https://github.com/Pranavj17/superpowers-gates
 cd superpowers-gates
 cp framework/lib/examples/* ~/.claude/gates/
-# Configure manually in .claude/settings.json
+# Configure manually in .claude/settings.json (see Quick Start step 3)
 ```
 
 Both paths use the same framework core — just different distribution methods.
@@ -115,7 +120,8 @@ Three production-ready gates are included:
 
 ### 3. Register in Claude Code
 
-Add to `.claude/settings.json`:
+**Plugin installs skip this step** — `hooks/hooks.json` registers the runner
+automatically. For manual/clone installs, add to `.claude/settings.json`:
 
 ```json
 {

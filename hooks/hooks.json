@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/framework/lib/gates/runner.sh\" PreToolUse",
+            "statusMessage": "Checking gates..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/framework/lib/gates/runner.sh\" PostToolUse",
+            "statusMessage": "Checking gates..."
+          }
+        ]
+      }
+    ]
+  }
+}

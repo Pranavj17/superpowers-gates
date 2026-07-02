@@ -10,7 +10,7 @@
       "name": "superpowers-gates",
       "source": "./",
       "description": "YAML-based permission and safety gates for Claude Code hooks. Create, validate, and manage gates without JSON escaping.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "Pranavj17"
       },

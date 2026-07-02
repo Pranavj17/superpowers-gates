@@ -47,6 +47,39 @@ condition: |
   jq -r '.tool_input.command' | grep -qE '\bmix +ecto\.(create|drop|reset)\b'
 ```
 
+**Gotchas:**
+
+1. **Stdin is consumed once.** The hook JSON arrives on stdin a single time. If
+   your condition needs more than one `jq` call, capture stdin first or the
+   second call silently reads an empty stream:
+
+   ```yaml
+   condition: |
+     input=$(cat)
+     file=$(jq -r '.tool_input.file_path // ""' <<< "$input")
+     added=$(jq -r '.tool_input.content // .tool_input.new_string // ""' <<< "$input")
+     ...
+   ```
+
+2. **Gates run globally.** The runner is registered as a user-level hook, so
+   every gate fires in every project. A gate enforcing a project-specific rule
+   must path-scope its condition, e.g.:
+
+   ```yaml
+   condition: |
+     file=$(jq -r '.tool_input.file_path')
+     case "$file" in
+       /Users/you/projects/my-repo/*) ;;  # this repo only
+       *) exit 1 ;;
+     esac
+     ...
+   ```
+
+3. **Side-effect gates.** A gate can perform an action (e.g. append to a log)
+   and then `exit 1` so it never emits a decision — useful for PostToolUse
+   audit trails where per-call decision output would be noise. See
+   `examples/audit-log.yaml`.
+
 ### `decision` (string, enum)
 What Claude Code should do when gate triggers. Valid values:
 - `"allow"` — Permit the action
