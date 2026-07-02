@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-x.example.com/schemas/gate-v1.0.json",
+  "title": "Hook Gate Schema",
+  "description": "JSON Schema for validating YAML-based permission and safety gates used by Claude Code hook framework",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "hook",
+    "matcher",
+    "condition",
+    "decision",
+    "message"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the gate in kebab-case",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "minLength": 1,
+      "maxLength": 100,
+      "examples": [
+        "no-destructive-db",
+        "no-docs-violation",
+        "audit-log"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable purpose and explanation of the gate",
+      "minLength": 1,
+      "maxLength": 500,
+      "examples": [
+        "Prevent mix ecto.create/drop/reset without explicit approval",
+        "Enforce Rule 4: .md files must live under /docs"
+      ]
+    },
+    "hook": {
+      "type": "string",
+      "description": "Hook event that triggers this gate",
+      "enum": [
+        "PreToolUse",
+        "PostToolUse",
+        "UserPromptSubmit",
+        "SessionStart",
+        "SessionEnd"
+      ],
+      "examples": [
+        "PreToolUse",
+        "PostToolUse"
+      ]
+    },
+    "matcher": {
+      "type": "string",
+      "description": "Regex pattern for matching tool names or wildcard '*' for all tools",
+      "minLength": 1,
+      "maxLength": 200,
+      "examples": [
+        "Bash",
+        "Write|Edit",
+        "*"
+      ]
+    },
+    "condition": {
+      "type": "string",
+      "description": "Bash code executed to determine if gate triggers (exit 0 = trigger, exit 1 = no trigger)",
+      "minLength": 1,
+      "maxLength": 5000,
+      "examples": [
+        "jq -r '.tool_input.command' | grep -qE '\\bmix +ecto\\.(create|drop|reset)\\b'",
+        "file=$(jq -r '.tool_input.file_path'); [[ \"$file\" == *.md ]] && [[ \"$file\" != */docs/* ]]"
+      ]
+    },
+    "decision": {
+      "type": "string",
+      "description": "Decision made by Claude Code when gate triggers",
+      "enum": [
+        "allow",
+        "deny",
+        "ask",
+        "transform"
+      ],
+      "examples": [
+        "allow",
+        "deny",
+        "ask",
+        "transform"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "description": "User-facing message explaining why the gate triggered and what decision was made",
+      "minLength": 1,
+      "maxLength": 500,
+      "examples": [
+        "Rule 2: Destructive DB command requires explicit confirmation",
+        "Rule 4: .md files must live under /docs (exceptions: CLAUDE.md, README.md, directory claude.md)"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "description": "Searchable categories and keywords for organizing gates",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50,
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "minItems": 0,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "examples": [
+        [
+          "security",
+          "database"
+        ],
+        [
+          "documentation",
+          "rule-4"
+        ]
+      ],
+      "default": []
+    },
+    "severity": {
+      "type": "string",
+      "description": "Risk level for sorting and prioritizing gates",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium",
+      "examples": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "version": {
+      "type": "string",
+      "description": "Gate version for compatibility tracking and updates",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$",
+      "default": "1.0",
+      "examples": [
+        "1.0",
+        "2.1",
+        "1.0.1"
+      ]
+    },
+    "author": {
+      "type": "string",
+      "description": "Email or name of the person who wrote this gate",
+      "minLength": 1,
+      "maxLength": 200,
+      "examples": [
+        "pranav.j@scripbox.com",
+        "Team Security"
+      ]
+    }
+  }
+}

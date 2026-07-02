@@ -1,0 +1,63 @@
+diff --git a/lib/tests/fixtures/invalid-gate.yaml b/lib/tests/fixtures/invalid-gate.yaml
+new file mode 100644
+index 0000000..3cdc8d8
+--- /dev/null
++++ b/lib/tests/fixtures/invalid-gate.yaml
+@@ -0,0 +1,7 @@
++name: "allow-test-commands"
++description: "Gate that allows test commands in Bash"
++hook: "PreToolUse"
++matcher: "Bash"
++condition:
++  command_contains: "test"
++message: "Review this test command before execution"
+diff --git a/lib/tests/fixtures/mock-destructive-db.json b/lib/tests/fixtures/mock-destructive-db.json
+new file mode 100644
+index 0000000..941dfae
+--- /dev/null
++++ b/lib/tests/fixtures/mock-destructive-db.json
+@@ -0,0 +1,6 @@
++{
++  "tool": "Bash",
++  "tool_input": {
++    "command": "mix ecto.drop"
++  }
++}
+diff --git a/lib/tests/fixtures/mock-preToolUse-bash.json b/lib/tests/fixtures/mock-preToolUse-bash.json
+new file mode 100644
+index 0000000..5d55ca1
+--- /dev/null
++++ b/lib/tests/fixtures/mock-preToolUse-bash.json
+@@ -0,0 +1,6 @@
++{
++  "tool": "Bash",
++  "tool_input": {
++    "command": "ls -la /tmp"
++  }
++}
+diff --git a/lib/tests/fixtures/mock-preToolUse-write.json b/lib/tests/fixtures/mock-preToolUse-write.json
+new file mode 100644
+index 0000000..e798bb5
+--- /dev/null
++++ b/lib/tests/fixtures/mock-preToolUse-write.json
+@@ -0,0 +1,6 @@
++{
++  "tool": "Write",
++  "tool_input": {
++    "file_path": "/OAUTH.md"
++  }
++}
+diff --git a/lib/tests/fixtures/valid-gate.yaml b/lib/tests/fixtures/valid-gate.yaml
+new file mode 100644
+index 0000000..d675cb6
+--- /dev/null
++++ b/lib/tests/fixtures/valid-gate.yaml
+@@ -0,0 +1,8 @@
++name: "allow-test-commands"
++description: "Gate that allows test commands in Bash"
++hook: "PreToolUse"
++matcher: "Bash"
++condition:
++  command_contains: "test"
++decision: "ask"
++message: "Review this test command before execution"
