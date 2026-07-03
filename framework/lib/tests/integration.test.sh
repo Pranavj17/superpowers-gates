@@ -178,6 +178,15 @@ test_flagship_examples() {
     out=$(echo "$stop_edit_then_test_input" | bash "$LIB_DIR/gates/runner.sh" Stop 2>/dev/null || true)
     assert_empty "$out" || pass=false
 
+    # REGRESSION: write-with-pytest: Write tool contains "pytest" in content,
+    # but no actual Bash test command ran. Should BLOCK (no tests ran).
+    local sid_write_pytest="flagship-stop-write-pytest"
+    local stop_write_pytest_input
+    stop_write_pytest_input=$(jq -n --arg tp "$FIXTURES_DIR/mock-transcript-write-with-pytest.jsonl" --arg sid "$sid_write_pytest" \
+        '{session_id: $sid, transcript_path: $tp, stop_hook_active: false}')
+    out=$(echo "$stop_write_pytest_input" | bash "$LIB_DIR/gates/runner.sh" Stop 2>/dev/null || true)
+    assert_contains "$out" '"decision":"block"' || pass=false
+
     # --- prompt-router (UserPromptSubmit): tracker URL => inject ---
     local router_trigger_input='{"prompt":"please handle https://app.asana.com/0/123456789/987654321 today"}'
     out=$(echo "$router_trigger_input" | bash "$LIB_DIR/gates/runner.sh" UserPromptSubmit 2>/dev/null || true)

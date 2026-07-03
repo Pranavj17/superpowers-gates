@@ -41,3 +41,25 @@ th_tools_since_last() {
         printf '%s\n' "$entries" | tail -n "+$((last_match + 1))"
     fi
 }
+
+# th_tools_since_last_bash_command <transcript_path> <marker_ere>
+# Prints the th_tool_entries lines that occur AFTER the last Bash command
+# matching <marker_ere>. Only Bash commands are considered for the marker;
+# other tools' JSON content is ignored even if it contains the marker pattern.
+# If no Bash command matches the marker, prints all entries.
+th_tools_since_last_bash_command() {
+    local transcript_path="$1"
+    local marker="$2"
+    local entries last_match
+    entries=$(th_tool_entries "$transcript_path")
+    # Find the last line number where tool is Bash AND the JSON input matches the marker
+    last_match=$(printf '%s\n' "$entries" | awk -F'\t' -v marker="$marker" '
+        $1=="Bash" && $0 ~ marker {ln=NR}
+        END {print ln}
+    ')
+    if [ -z "$last_match" ] || [ "$last_match" -eq 0 ]; then
+        printf '%s\n' "$entries"
+    else
+        printf '%s\n' "$entries" | tail -n "+$((last_match + 1))"
+    fi
+}

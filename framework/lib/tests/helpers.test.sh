@@ -219,6 +219,28 @@ test_th_tools_since_last_no_marker_match_returns_all() {
     assert_contains "th_tools_since_last: no marker match includes latest entry" "$out" "other.ex"
 }
 
+# REGRESSION TEST: Ensure marker in non-Bash tool (Write) doesn't trigger
+# Fixture: Edit storage.ex, Write file.py with "pytest" in content (NOT a test run)
+# Expected: since_bash_command returns all entries (no Bash test command found)
+test_th_tools_since_last_bash_command_ignores_non_bash_marker() {
+    source "$GATES_DIR/transcript-helpers.sh"
+    local out
+    out=$(th_tools_since_last_bash_command "$FIXTURES_DIR/mock-transcript-write-with-pytest.jsonl" 'pytest')
+    # Since no Bash command matches "pytest", should return all entries
+    assert_contains "th_tools_since_last_bash_command: non-Bash pytest ignored" "$out" "storage.ex"
+    assert_contains "th_tools_since_last_bash_command: no Bash marker includes Write" "$out" "test_runner.py"
+}
+
+# Ensure Bash-scoped version still finds Bash commands correctly
+test_th_tools_since_last_bash_command_finds_bash_marker() {
+    source "$GATES_DIR/transcript-helpers.sh"
+    local out
+    out=$(th_tools_since_last_bash_command "$FIXTURES_DIR/mock-transcript.jsonl" 'npm test')
+    assert_contains "th_tools_since_last_bash_command: after Bash marker included" "$out" "other.ex"
+    assert_not_contains "th_tools_since_last_bash_command: before Bash marker excluded" "$out" "storage.ex"
+    assert_not_contains "th_tools_since_last_bash_command: Bash marker itself excluded" "$out" "npm test"
+}
+
 # =============================================================================
 # Main: Run all tests and report results
 # =============================================================================
@@ -241,6 +263,8 @@ main() {
     test_th_ran_command_matching || true
     test_th_tools_since_last_scopes_to_after_marker || true
     test_th_tools_since_last_no_marker_match_returns_all || true
+    test_th_tools_since_last_bash_command_ignores_non_bash_marker || true
+    test_th_tools_since_last_bash_command_finds_bash_marker || true
 
     echo
     echo "======================================================================="
