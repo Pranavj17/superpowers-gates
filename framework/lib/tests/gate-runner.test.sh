@@ -343,6 +343,74 @@ test_star_matcher_matches_all_tools() {
     teardown_test_environment
 }
 
+# Helper: run runner with a custom project cwd embedded in input JSON
+make_input_with_cwd() { # $1=tool_name $2=cwd
+    printf '{"tool_name":"%s","cwd":"%s","tool_input":{"command":"ls"}}' "$1" "$2"
+}
+
+test_project_gates_load_and_win() {
+    setup_test_environment
+    local proj_dir
+    proj_dir=$(mktemp -d)
+    mkdir -p "$proj_dir/.claude/gates"
+    # Global gate allows; project gate denies. Project must win.
+    create_test_gate "z-global" "PreToolUse" "Bash" "true" "ask" "Global gate"
+    cat > "$proj_dir/.claude/gates/a-project.yaml" <<'EOF'
+name: "a-project"
+description: "project gate"
+hook: "PreToolUse"
+matcher: "Bash"
+condition: |
+  true
+decision: "deny"
+message: "Project gate wins"
+EOF
+    local result
+    result=$(make_input_with_cwd "Bash" "$proj_dir" | bash "$RUNNER_PATH" "PreToolUse" || echo "")
+    assert_contains "test_project_gates_load_and_win" "$result" "Project gate wins"
+    rm -rf "$proj_dir"
+    teardown_test_environment
+}
+
+test_stop_block_dialect() {
+    setup_test_environment
+    create_test_gate "stop-gate" "Stop" "*" "true" "block" "Finish the tests first"
+    local result
+    result=$(printf '{"session_id":"s1","stop_hook_active":false}' | bash "$RUNNER_PATH" "Stop" || echo "")
+    assert_contains "test_stop_block_dialect: decision block" "$result" '"decision":"block"'
+    assert_contains "test_stop_block_dialect: reason" "$result" "Finish the tests first"
+    teardown_test_environment
+}
+
+test_prompt_inject_uses_condition_stdout() {
+    setup_test_environment
+    create_test_gate "router" "UserPromptSubmit" "*" "echo INJECTED-WORKFLOW" "inject" "fallback msg"
+    local result
+    result=$(printf '{"prompt":"debug this"}' | bash "$RUNNER_PATH" "UserPromptSubmit" || echo "")
+    assert_contains "test_prompt_inject: additionalContext" "$result" '"additionalContext":"INJECTED-WORKFLOW'
+    teardown_test_environment
+}
+
+test_sessionstart_matcher_uses_source() {
+    setup_test_environment
+    create_test_gate "boot" "SessionStart" "startup" "echo BOOTCTX" "inject" "unused"
+    local hit miss
+    hit=$(printf '{"source":"startup"}' | bash "$RUNNER_PATH" "SessionStart" || echo "")
+    miss=$(printf '{"source":"resume"}' | bash "$RUNNER_PATH" "SessionStart" || echo "")
+    assert_contains "test_sessionstart_matcher: startup matches" "$hit" "BOOTCTX"
+    assert_empty "test_sessionstart_matcher: resume skipped" "$miss"
+    teardown_test_environment
+}
+
+test_illegal_decision_for_event_skipped() {
+    setup_test_environment
+    create_test_gate "bad-stop" "Stop" "*" "true" "deny" "should never fire"
+    local result
+    result=$(printf '{"session_id":"s1"}' | bash "$RUNNER_PATH" "Stop" || echo "")
+    assert_empty "test_illegal_decision_for_event_skipped" "$result"
+    teardown_test_environment
+}
+
 # =============================================================================
 # Main: Run all tests and report results
 # =============================================================================
@@ -367,6 +435,11 @@ main() {
     test_rule_4_allows_docs_md || true
     test_first_match_wins || true
     test_star_matcher_matches_all_tools || true
+    test_project_gates_load_and_win || true
+    test_stop_block_dialect || true
+    test_prompt_inject_uses_condition_stdout || true
+    test_sessionstart_matcher_uses_source || true
+    test_illegal_decision_for_event_skipped || true
 
     echo
     echo "======================================================================="
