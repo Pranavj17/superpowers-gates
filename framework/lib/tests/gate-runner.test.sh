@@ -411,6 +411,41 @@ test_illegal_decision_for_event_skipped() {
     teardown_test_environment
 }
 
+# Test: PostToolUse block dialect
+test_posttooluse_block_dialect() {
+    setup_test_environment
+    create_test_gate "block-gate" "PostToolUse" "Bash" "true" "block" "Fix the output first"
+    local input='{"tool_name":"Bash","tool_input":{"command":"ls"},"tool_output":"x"}'
+    local result
+    result=$(printf '%s' "$input" | bash "$RUNNER_PATH" "PostToolUse" || echo "")
+    assert_contains "test_posttooluse_block_dialect: decision is block" "$result" '"decision":"block"'
+    assert_contains "test_posttooluse_block_dialect: message" "$result" "Fix the output first"
+    teardown_test_environment
+}
+
+# Test: PostToolUse inject uses condition stdout
+test_posttooluse_inject_uses_condition_stdout() {
+    setup_test_environment
+    create_test_gate "inject-gate" "PostToolUse" "Bash" "echo NUDGE-CONTEXT" "inject" "unused message"
+    local input='{"tool_name":"Bash","tool_input":{"command":"ls"},"tool_output":"x"}'
+    local result
+    result=$(printf '%s' "$input" | bash "$RUNNER_PATH" "PostToolUse" || echo "")
+    assert_contains "test_posttooluse_inject: additionalContext" "$result" '"additionalContext":"NUDGE-CONTEXT'
+    assert_contains "test_posttooluse_inject: hookEventName" "$result" '"hookEventName":"PostToolUse"'
+    teardown_test_environment
+}
+
+# Test: PostToolUse allow is silent no-op
+test_posttooluse_allow_is_silent_noop() {
+    setup_test_environment
+    create_test_gate "allow-gate" "PostToolUse" "Bash" "true" "allow" "unused"
+    local input='{"tool_name":"Bash","tool_input":{"command":"ls"},"tool_output":"x"}'
+    local result
+    result=$(printf '%s' "$input" | bash "$RUNNER_PATH" "PostToolUse" || echo "")
+    assert_empty "test_posttooluse_allow_is_silent_noop: output empty" "$result"
+    teardown_test_environment
+}
+
 # =============================================================================
 # Main: Run all tests and report results
 # =============================================================================
@@ -440,6 +475,9 @@ main() {
     test_prompt_inject_uses_condition_stdout || true
     test_sessionstart_matcher_uses_source || true
     test_illegal_decision_for_event_skipped || true
+    test_posttooluse_block_dialect || true
+    test_posttooluse_inject_uses_condition_stdout || true
+    test_posttooluse_allow_is_silent_noop || true
 
     echo
     echo "======================================================================="
