@@ -9,8 +9,14 @@
 
 set -euo pipefail
 
+# Get absolute paths for consistent behavior
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+GATES_DIR="$PROJECT_ROOT/lib/gates"
+FIXTURES_DIR="$SCRIPT_DIR/fixtures"
+
 # Source the helpers library (will fail until Task 3)
-source "$(dirname "$0")/../gates/helpers.sh" 2>/dev/null || {
+source "$GATES_DIR/helpers.sh" 2>/dev/null || {
     echo "❌ FATAL: lib/gates/helpers.sh not found (expected for TDD)"
     exit 1
 }
@@ -79,6 +85,27 @@ assert_equals() {
     fi
 }
 
+# assert_contains <test_name> <haystack> <needle>
+# Verify that haystack contains needle (substring match)
+assert_contains() {
+    local test_name="$1"
+    local haystack="$2"
+    local needle="$3"
+    TESTS_TOTAL=$((TESTS_TOTAL + 1))
+
+    if [[ "$haystack" == *"$needle"* ]]; then
+        echo "✓ PASS: $test_name"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+        return 0
+    else
+        echo "✗ FAIL: $test_name"
+        echo "  Expected to contain: $needle"
+        echo "  Actual: $haystack"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        return 1
+    fi
+}
+
 # =============================================================================
 # Test Functions for is_destructive_bash_cmd()
 # =============================================================================
@@ -124,6 +151,34 @@ test_is_docs_location_violation_with_claude_md() {
 }
 
 # =============================================================================
+# Test Functions for transcript-helpers.sh (Task 4)
+# =============================================================================
+
+test_th_tool_entries_lists_tools() {
+    source "$GATES_DIR/transcript-helpers.sh"
+    local out
+    out=$(th_tool_entries "$FIXTURES_DIR/mock-transcript.jsonl")
+    assert_contains "th_tool_entries: Edit listed" "$out" "Edit"
+    assert_contains "th_tool_entries: Bash listed" "$out" "mix compile"
+}
+
+test_th_edited_files_matching() {
+    source "$GATES_DIR/transcript-helpers.sh"
+    assert_exit_0 "th_edited_files_matching: .ex edited" \
+        "th_edited_files_matching '$FIXTURES_DIR/mock-transcript.jsonl' '\\.ex\"' >/dev/null"
+    assert_exit_nonzero "th_edited_files_matching: no .py edited" \
+        "th_edited_files_matching '$FIXTURES_DIR/mock-transcript.jsonl' '\\.py\"' >/dev/null"
+}
+
+test_th_ran_command_matching() {
+    source "$GATES_DIR/transcript-helpers.sh"
+    assert_exit_0 "th_ran_command_matching: mix compile ran" \
+        "th_ran_command_matching '$FIXTURES_DIR/mock-transcript.jsonl' 'mix compile'"
+    assert_exit_nonzero "th_ran_command_matching: mix test did not run" \
+        "th_ran_command_matching '$FIXTURES_DIR/mock-transcript.jsonl' 'mix test'"
+}
+
+# =============================================================================
 # Main: Run all tests and report results
 # =============================================================================
 
@@ -140,6 +195,9 @@ main() {
     test_is_docs_location_violation_with_root_md || true
     test_is_docs_location_violation_with_docs_md || true
     test_is_docs_location_violation_with_claude_md || true
+    test_th_tool_entries_lists_tools || true
+    test_th_edited_files_matching || true
+    test_th_ran_command_matching || true
 
     echo
     echo "======================================================================="
