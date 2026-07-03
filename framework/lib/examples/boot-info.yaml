@@ -1,0 +1,13 @@
+name: "boot-info"
+description: "Inject project boot context on fresh session start (reads .claude/BOOT.md if present)"
+hook: "SessionStart"
+matcher: "startup"
+condition: |
+  input=$(cat)
+  cwd=$(jq -r '.cwd // empty' <<< "$input")
+  [ -n "$cwd" ] && [ -f "$cwd/.claude/BOOT.md" ] || exit 1
+  cat "$cwd/.claude/BOOT.md"
+decision: "inject"
+message: "boot context"
+tags: ["orchestration", "context"]
+severity: "low"

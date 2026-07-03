@@ -1,0 +1,14 @@
+name: "format-nudge"
+description: "After editing an Elixir file, remind Claude to run mix format"
+hook: "PostToolUse"
+matcher: "Write|Edit"
+condition: |
+  f=$(jq -r '.tool_input.file_path // empty')
+  case "$f" in
+    *.ex|*.exs) echo "Reminder: you edited $f — run 'mix format' before finishing." ;;
+    *) exit 1 ;;
+  esac
+decision: "inject"
+message: "formatting reminder"
+tags: ["orchestration", "feedback"]
+severity: "low"

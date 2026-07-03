@@ -1,0 +1,16 @@
+name: "stop-run-tests"
+description: "Block ending the turn when code files were edited but no test command ran"
+hook: "Stop"
+matcher: "*"
+condition: |
+  input=$(cat)
+  tp=$(jq -r '.transcript_path // empty' <<< "$input")
+  [ -n "$tp" ] && [ -f "$tp" ] || exit 1
+  source "$GATES_LIB_DIR/transcript-helpers.sh"
+  th_edited_files_matching "$tp" '\.(ex|exs|py|js|ts)"' >/dev/null || exit 1
+  th_ran_command_matching "$tp" '(mix test|pytest|npm test|go test)' && exit 1
+  exit 0
+decision: "block"
+message: "Code files were edited this session but no test command has run. Run the tests before finishing."
+tags: ["orchestration", "definition-of-done"]
+severity: "medium"

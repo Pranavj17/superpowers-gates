@@ -1,0 +1,12 @@
+name: "prompt-router"
+description: "Inject workflow instructions when the prompt contains a tracker URL (template)"
+hook: "UserPromptSubmit"
+matcher: "*"
+condition: |
+  p=$(jq -r '.prompt // .user_input // empty')
+  echo "$p" | grep -qE 'app\.asana\.com/[0-9]+/|sentry\.[a-z.]+/organizations/[^/]+/issues/' || exit 1
+  echo "WORKFLOW TRIGGER: tracker URL detected in this prompt. Execute the project's full RCA workflow automatically without waiting for confirmation."
+decision: "inject"
+message: "tracker URL detected"
+tags: ["orchestration", "routing"]
+severity: "low"
