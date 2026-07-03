@@ -37,7 +37,9 @@ Same logic, **10× more readable**, and **independently testable**.
 ## Features
 
 ✅ **Declarative YAML gates** — Define permission rules without inline JSON escaping  
-✅ **First-match-wins evaluation** — Gates load alphabetically, first trigger returns decision  
+✅ **Six-event control plane** — PreToolUse, PostToolUse, UserPromptSubmit, SessionStart, Stop, SubagentStop, each with its own decision dialect  
+✅ **Per-repo scoping by placement** — project gates in `<repo>/.claude/gates/` beat global gates in `~/.claude/gates/`, no scope field needed  
+✅ **First-match-wins evaluation** — Gates load alphabetically (project dir first, then global), first trigger returns decision  
 ✅ **Fail-open by default** — No matching gate = allow (safe default)  
 ✅ **Comprehensive validation** — `validate.sh` checks YAML syntax, required fields, valid enums  
 ✅ **Reusable helpers** — Bash/jq functions for common patterns (destructive commands, file paths)  
@@ -48,16 +50,16 @@ Same logic, **10× more readable**, and **independently testable**.
 ## Architecture
 
 ```
-Hook Event (e.g., PreToolUse)
+Hook Event (e.g., PreToolUse, Stop, SessionStart, ...)
     ↓
-Runner loads gates from ~/.claude/gates/*.yaml
+Runner loads gates from <cwd>/.claude/gates/*.yaml, then ~/.claude/gates/*.yaml
     ↓
-For each gate (alphabetically):
+For each gate (alphabetically, project dir first):
   - Check hook matches
-  - Check tool matcher (regex)
+  - Check matcher (tool_name / source / agent_type, per event)
   - Evaluate condition (bash code)
     ↓
-First match → Return decision (ask/deny/allow)
+First match → Emit the event's decision dialect (see SCHEMA_REFERENCE.md)
 No match → Allow (fail-open)
 ```
 
@@ -69,8 +71,10 @@ No match → Allow (fail-open)
 /plugin install superpowers-gates@superpowers-gates
 ```
 The plugin ships `hooks/hooks.json`, so the gate runner registers itself for
-PreToolUse and PostToolUse automatically — **no settings.json edits needed**.
-Just add gate files to `~/.claude/gates/` (copy the examples to start):
+all six events (PreToolUse, PostToolUse, UserPromptSubmit, SessionStart,
+Stop, SubagentStop) automatically — **no settings.json edits needed**. Just
+add gate files to `~/.claude/gates/` (copy the examples to start), or to a
+repo's `.claude/gates/` to scope a gate to that project:
 ```bash
 mkdir -p ~/.claude/gates
 cp "$(ls -d ~/.claude/plugins/cache/superpowers-gates/superpowers-gates/*/ | tail -1)framework/lib/examples/"*.yaml ~/.claude/gates/
@@ -121,7 +125,11 @@ Three production-ready gates are included:
 ### 3. Register in Claude Code
 
 **Plugin installs skip this step** — `hooks/hooks.json` registers the runner
-automatically. For manual/clone installs, add to `.claude/settings.json`:
+for all six events automatically. For manual/clone installs, add one block
+per event to `.claude/settings.json` (or `~/.claude/settings.json` for a
+global registration) — repeat the shape below for `PreToolUse`,
+`PostToolUse`, `UserPromptSubmit`, `SessionStart`, `Stop`, and
+`SubagentStop`:
 
 ```json
 {
@@ -136,6 +144,10 @@ automatically. For manual/clone installs, add to `.claude/settings.json`:
   }
 }
 ```
+
+To scope gates to a single repo instead of registering globally, drop the
+gate YAML in that repo's `.claude/gates/` — no settings changes needed there,
+just the gate files (see `SCHEMA_REFERENCE.md#gate-loading-order`).
 
 ### 4. Create Custom Gates
 

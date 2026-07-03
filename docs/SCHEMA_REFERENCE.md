@@ -17,12 +17,10 @@ description: "Prevent mix ecto.create/drop/reset without explicit approval"
 ```
 
 ### `hook` (string, enum)
-When the gate is evaluated. Valid values:
-- `PreToolUse` — Before a tool executes
-- `PostToolUse` — After a tool executes
-- `UserPromptSubmit` — When user submits a prompt
-- `SessionStart` — When session begins
-- `SessionEnd` — When session ends
+When the gate is evaluated. Valid values: `PreToolUse`, `PostToolUse`,
+`UserPromptSubmit`, `SessionStart`, `Stop`, `SubagentStop`. See
+[Decision dialects](#decision-dialects) below for which `decision` values are
+legal on each.
 
 ```yaml
 hook: "PreToolUse"
@@ -61,9 +59,13 @@ condition: |
      ...
    ```
 
-2. **Gates run globally.** The runner is registered as a user-level hook, so
-   every gate fires in every project. A gate enforcing a project-specific rule
-   must path-scope its condition, e.g.:
+2. **Gates are scoped by placement, not by field.** The runner loads gates
+   from `<cwd>/.claude/gates/*.yaml` (project) first, then
+   `~/.claude/gates/*.yaml` (global) — see [Gate loading
+   order](#gate-loading-order). A project gate applies only in that repo; a
+   global gate fires everywhere. There is no `scope:`/`paths:` YAML field —
+   drop a gate in the repo's `.claude/gates/` to scope it there instead of
+   path-guarding the condition:
 
    ```yaml
    condition: |
@@ -81,22 +83,52 @@ condition: |
    `examples/audit-log.yaml`.
 
 ### `decision` (string, enum)
-What Claude Code should do when gate triggers. Valid values:
-- `"allow"` — Permit the action
-- `"deny"` — Block the action
-- `"ask"` — Ask user for permission
-- `"transform"` — Modify input (future, requires handler)
+What Claude Code should do when the gate triggers. `decision` is
+**event-aware** — the legal values (and what the runner emits) depend on
+`hook`. The validator rejects a `decision` that isn't legal for its `hook`.
+
+#### Decision dialects
+
+| `hook` | legal `decision` | on trigger, runner emits |
+|---|---|---|
+| PreToolUse | `ask` / `deny` / `allow` | `hookSpecificOutput.permissionDecision` + reason (unchanged) |
+| PostToolUse | `block` / `inject` | `{"decision":"block","reason":message}` or `hookSpecificOutput.additionalContext` |
+| UserPromptSubmit | `block` / `inject` | `{"decision":"block","reason":message}` (prompt erased) or `additionalContext` |
+| SessionStart | `inject` | `hookSpecificOutput.additionalContext` |
+| Stop | `block` | `{"decision":"block","reason":message}` — turn continues, Claude sees reason |
+| SubagentStop | `block` | same as Stop |
 
 ```yaml
 decision: "ask"
 ```
 
+**The inject/stdout contract.** Condition stdout is the payload for `inject`
+gates: when an `inject` gate's condition exits 0, the runner captures
+whatever it printed to stdout and emits that as `additionalContext`. The
+condition is both predicate and generator — e.g. a `SessionStart` gate whose
+condition prints boot info becomes the injected context verbatim. For
+`block`/`ask`/`deny`/`allow` gates the static `message:` field is the reason,
+as always; stdout is ignored for those.
+
 ### `message` (string)
-User-facing reason shown when gate triggers.
+User-facing reason shown when gate triggers (ignored for `inject` gates,
+where stdout is the payload — see above).
 
 ```yaml
 message: "Rule 2: Destructive DB command requires explicit confirmation"
 ```
+
+## Gate loading order
+
+The runner loads gates from two directories, in order:
+
+1. `<cwd>/.claude/gates/*.yaml` — project gates (`cwd` comes from the hook
+   input JSON)
+2. `~/.claude/gates/*.yaml` — global gates
+
+Within each directory, gates load alphabetically. Across the merged list,
+**first triggered gate wins** — so a project gate can pre-empt a global gate
+of the same shape simply by existing.
 
 ## Optional Fields
 
@@ -126,6 +158,16 @@ Who wrote this gate.
 
 ```yaml
 author: "pranav.j@scripbox.com"
+```
+
+### `max_blocks` (integer, `Stop`/`SubagentStop` only)
+Default: `1`. A blocked `Stop` makes Claude continue and eventually try to
+stop again; the runner auto-allows the gate on a repeat stop within the same
+turn to prevent infinite nagging. Set `max_blocks: N` to opt into more
+re-blocks before the guard kicks in.
+
+```yaml
+max_blocks: 2
 ```
 
 ## Condition Evaluation

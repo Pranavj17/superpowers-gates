@@ -21,6 +21,50 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/framework/lib/gates/runner.sh\" UserPromptSubmit",
+            "statusMessage": "Checking gates..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/framework/lib/gates/runner.sh\" SessionStart",
+            "statusMessage": "Checking gates..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/framework/lib/gates/runner.sh\" Stop",
+            "statusMessage": "Checking gates..."
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/framework/lib/gates/runner.sh\" SubagentStop",
+            "statusMessage": "Checking gates..."
+          }
+        ]
+      }
     ]
   }
 }
