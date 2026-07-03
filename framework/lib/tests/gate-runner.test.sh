@@ -446,6 +446,44 @@ test_posttooluse_allow_is_silent_noop() {
     teardown_test_environment
 }
 
+# Test: Stop guard allows second attempt (default single block)
+test_stop_guard_allows_second_attempt() {
+    setup_test_environment
+    create_test_gate "stop-dod" "Stop" "*" "true" "block" "keep going"
+    rm -f "${TMPDIR:-/tmp}/gates-stop-guardtest-stop-dod"
+    local first second
+    first=$(printf '{"session_id":"guardtest","stop_hook_active":false}' | bash "$RUNNER_PATH" "Stop" || echo "")
+    second=$(printf '{"session_id":"guardtest","stop_hook_active":true}' | bash "$RUNNER_PATH" "Stop" || echo "")
+    assert_contains "test_stop_guard: first attempt blocked" "$first" '"decision":"block"'
+    assert_empty "test_stop_guard: second attempt allowed" "$second"
+    teardown_test_environment
+}
+
+# Test: Stop guard respects max_blocks option
+test_stop_guard_max_blocks_two() {
+    setup_test_environment
+    cat > "$HOME/.claude/gates/stop-nag.yaml" <<'EOF'
+name: "stop-nag"
+description: "blocks twice"
+hook: "Stop"
+matcher: "*"
+condition: |
+  true
+decision: "block"
+message: "not done yet"
+max_blocks: 2
+EOF
+    rm -f "${TMPDIR:-/tmp}/gates-stop-nagtest-stop-nag"
+    local a b c
+    a=$(printf '{"session_id":"nagtest","stop_hook_active":false}' | bash "$RUNNER_PATH" "Stop" || echo "")
+    b=$(printf '{"session_id":"nagtest","stop_hook_active":true}' | bash "$RUNNER_PATH" "Stop" || echo "")
+    c=$(printf '{"session_id":"nagtest","stop_hook_active":true}' | bash "$RUNNER_PATH" "Stop" || echo "")
+    assert_contains "test_stop_guard_max2: 1st blocked" "$a" '"decision":"block"'
+    assert_contains "test_stop_guard_max2: 2nd blocked" "$b" '"decision":"block"'
+    assert_empty "test_stop_guard_max2: 3rd allowed" "$c"
+    teardown_test_environment
+}
+
 # =============================================================================
 # Main: Run all tests and report results
 # =============================================================================
@@ -478,6 +516,8 @@ main() {
     test_posttooluse_block_dialect || true
     test_posttooluse_inject_uses_condition_stdout || true
     test_posttooluse_allow_is_silent_noop || true
+    test_stop_guard_allows_second_attempt || true
+    test_stop_guard_max_blocks_two || true
 
     echo
     echo "======================================================================="
