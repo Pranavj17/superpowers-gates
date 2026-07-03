@@ -10,8 +10,8 @@
 set -euo pipefail
 
 # Valid enum values
-readonly VALID_HOOKS=("PreToolUse" "PostToolUse" "UserPromptSubmit" "SessionStart" "SessionEnd")
-readonly VALID_DECISIONS=("allow" "deny" "ask" "transform")
+readonly VALID_HOOKS=("PreToolUse" "PostToolUse" "UserPromptSubmit" "SessionStart" "Stop" "SubagentStop" "SessionEnd")
+readonly VALID_DECISIONS=("allow" "deny" "ask" "block" "inject" "transform")
 readonly VALID_SEVERITIES=("low" "medium" "high" "critical")
 
 # Required fields (7 total)
@@ -104,6 +104,32 @@ validate_gate() {
     if ! is_in_array "$decision" "VALID_DECISIONS"; then
         echo "ERROR: Invalid decision value '$decision' in $filename. Valid values: ${VALID_DECISIONS[*]}"
         return 1
+    fi
+
+    # Step 5b: decision must be legal for this hook (dialect table — keep in
+    # sync with runner.sh decision_legal)
+    case "$hook:$decision" in
+        PreToolUse:ask|PreToolUse:deny|PreToolUse:allow) ;;
+        PostToolUse:block|PostToolUse:inject|PostToolUse:allow) ;;
+        UserPromptSubmit:block|UserPromptSubmit:inject) ;;
+        SessionStart:inject) ;;
+        Stop:block|SubagentStop:block) ;;
+        SessionEnd:*)
+            echo "ERROR: SessionEnd gates are side-effect only; no decision applies in $filename"
+            return 1 ;;
+        *)
+            echo "ERROR: Decision '$decision' is not valid for hook '$hook' in $filename"
+            return 1 ;;
+    esac
+
+    # Step 5c: optional max_blocks must be a positive integer (Stop/SubagentStop only)
+    local max_blocks
+    max_blocks=$(yq -r '.max_blocks // ""' "$gate_file" 2>/dev/null) || max_blocks=""
+    if [[ -n "$max_blocks" ]] && [[ "$max_blocks" != "null" ]]; then
+        if ! [[ "$max_blocks" =~ ^[1-9][0-9]*$ ]]; then
+            echo "ERROR: max_blocks must be a positive integer in $filename"
+            return 1
+        fi
     fi
 
     # Step 6: Validate severity (optional field)
