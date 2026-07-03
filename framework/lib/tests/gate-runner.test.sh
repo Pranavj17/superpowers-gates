@@ -523,6 +523,60 @@ EOF
     teardown_test_environment
 }
 
+# Test: Stop guard fails OPEN (does not block) when the counter file exists
+# but cannot be read — guard state is unknown, so the runner must never
+# re-block on unknown state (FIX 2a).
+test_stop_guard_fails_open_when_counter_unreadable() {
+    setup_test_environment
+    create_test_gate "stop-unreadable" "Stop" "*" "true" "block" "should not re-block on error"
+    local sid="unreadable-test"
+    local count_file="${TMPDIR:-/tmp}/gates-stop-${sid}-stop-unreadable"
+    rm -f "$count_file"
+    # First (unblocked) Stop creates+initializes the counter file.
+    printf '{"session_id":"%s","stop_hook_active":false}' "$sid" \
+        | bash "$RUNNER_PATH" "Stop" >/dev/null 2>&1 || true
+    # Simulate an unreadable counter (e.g. disk error, permission change).
+    chmod 000 "$count_file" 2>/dev/null || true
+    local result
+    result=$(printf '{"session_id":"%s","stop_hook_active":true}' "$sid" \
+        | bash "$RUNNER_PATH" "Stop" || echo "")
+    chmod 644 "$count_file" 2>/dev/null || true
+    if [ "$(id -u)" = "0" ]; then
+        echo "SKIP: test_stop_guard_fails_open_when_counter_unreadable (running as root, chmod 000 has no effect)"
+    else
+        assert_empty "test_stop_guard_fails_open_when_counter_unreadable" "$result"
+    fi
+    rm -f "$count_file"
+    teardown_test_environment
+}
+
+# Test: gate `name` containing "/" is sanitized before building the counter
+# path, so the stop-loop guard still counts correctly across repeat Stops
+# instead of the path silently escaping TMPDIR (FIX 2b).
+test_stop_guard_sanitizes_gate_name_with_slash() {
+    setup_test_environment
+    cat > "$HOME/.claude/gates/nested-slash-gate.yaml" <<'EOF'
+name: "nested/gate"
+description: "gate name contains a slash"
+hook: "Stop"
+matcher: "*"
+condition: |
+  true
+decision: "block"
+message: "keep going"
+max_blocks: 2
+EOF
+    local sid="slashtest"
+    local a b c
+    a=$(printf '{"session_id":"%s","stop_hook_active":false}' "$sid" | bash "$RUNNER_PATH" "Stop" || echo "")
+    b=$(printf '{"session_id":"%s","stop_hook_active":true}' "$sid" | bash "$RUNNER_PATH" "Stop" || echo "")
+    c=$(printf '{"session_id":"%s","stop_hook_active":true}' "$sid" | bash "$RUNNER_PATH" "Stop" || echo "")
+    assert_contains "test_stop_guard_sanitizes_gate_name_with_slash: 1st blocked" "$a" '"decision":"block"'
+    assert_contains "test_stop_guard_sanitizes_gate_name_with_slash: 2nd blocked" "$b" '"decision":"block"'
+    assert_empty "test_stop_guard_sanitizes_gate_name_with_slash: 3rd allowed" "$c"
+    teardown_test_environment
+}
+
 # =============================================================================
 # Main: Run all tests and report results
 # =============================================================================
@@ -559,6 +613,8 @@ main() {
     test_posttooluse_allow_is_silent_noop || true
     test_stop_guard_allows_second_attempt || true
     test_stop_guard_max_blocks_two || true
+    test_stop_guard_fails_open_when_counter_unreadable || true
+    test_stop_guard_sanitizes_gate_name_with_slash || true
 
     echo
     echo "======================================================================="

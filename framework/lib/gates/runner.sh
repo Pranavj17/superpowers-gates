@@ -108,19 +108,30 @@ for gate_file in "${gate_files[@]}"; do
     # Stop-loop guard: a blocked Stop re-fires with stop_hook_active=true.
     # Default: one block per turn (max_blocks: 1). Counter resets on the
     # first (unblocked) Stop of each turn.
+    #
+    # Fail OPEN, not closed: if we can't determine how many times we've
+    # already blocked this turn (counter file missing/unreadable), assume
+    # the guard has tripped and allow the stop — never re-block on unknown
+    # state, since a bug here means Claude gets stuck forever.
     count_file=""
     if [ "$HOOK_EVENT" = "Stop" ] || [ "$HOOK_EVENT" = "SubagentStop" ]; then
         stop_active=$(echo "$INPUT_JSON" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
         max_blocks=$(yq eval '.max_blocks // 1' "$gate_file" 2>/dev/null || echo "1")
         case "$max_blocks" in (*[!0-9]*|"") max_blocks=1 ;; esac
         session_id=$(echo "$INPUT_JSON" | jq -r '.session_id // "nosession"' 2>/dev/null || echo "nosession")
-        count_file="${TMPDIR:-/tmp}/gates-stop-${session_id}-${gate_name}"
+        # Sanitize before building the path: project gates make gate_name
+        # repo-supplied, so a "/" or ".." must not escape TMPDIR.
+        safe_session_id=$(printf '%s' "$session_id" | tr -c 'A-Za-z0-9._-' '_')
+        safe_gate_name=$(printf '%s' "$gate_name" | tr -c 'A-Za-z0-9._-' '_')
+        count_file="${TMPDIR:-/tmp}/gates-stop-${safe_session_id}-${safe_gate_name}"
         if [ "$stop_active" = "true" ]; then
-            count=$(cat "$count_file" 2>/dev/null || echo "0")
+            if ! count=$(cat "$count_file" 2>/dev/null); then
+                continue   # unreadable counter → guard state unknown → allow the stop
+            fi
             case "$count" in (*[!0-9]*|"") count=0 ;; esac
             [ "$count" -ge "$max_blocks" ] && continue
         else
-            echo "0" > "$count_file" 2>/dev/null || true
+            echo "0" 2>/dev/null > "$count_file" || true
         fi
     fi
 
@@ -133,7 +144,7 @@ for gate_file in "${gate_files[@]}"; do
             Stop:block|SubagentStop:block)
                 count=$(cat "$count_file" 2>/dev/null || echo "0")
                 case "$count" in (*[!0-9]*|"") count=0 ;; esac
-                echo $((count + 1)) > "$count_file" 2>/dev/null || true
+                echo $((count + 1)) 2>/dev/null > "$count_file" || true
                 echo "{\"decision\":\"block\",\"reason\":$(json_str "$gate_message")}"
                 ;;
             *:block)
