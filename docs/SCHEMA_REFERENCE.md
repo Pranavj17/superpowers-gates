@@ -123,12 +123,19 @@ message: "Rule 2: Destructive DB command requires explicit confirmation"
 The runner loads gates from two directories, in order:
 
 1. `<cwd>/.claude/gates/*.yaml` — project gates (`cwd` comes from the hook
-   input JSON)
+   input JSON) — **only for trusted projects**, see below
 2. `~/.claude/gates/*.yaml` — global gates
 
 Within each directory, gates load alphabetically. Across the merged list,
 **first triggered gate wins** — so a project gate can pre-empt a global gate
 of the same shape simply by existing.
+
+> **Security note:** Project gates run arbitrary bash from the repository on
+> hook events including SessionStart. They are loaded ONLY for trusted
+> projects: add the repo's absolute path to `~/.claude/gates-trusted`, or set
+> `GATES_TRUST_PROJECT=1`. Treat this like Claude Code project hooks. An
+> untrusted project's `.claude/gates/*.yaml` files are skipped entirely —
+> only global gates from `~/.claude/gates/` apply.
 
 ## Optional Fields
 

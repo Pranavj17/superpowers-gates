@@ -52,7 +52,8 @@ Same logic, **10× more readable**, and **independently testable**.
 ```
 Hook Event (e.g., PreToolUse, Stop, SessionStart, ...)
     ↓
-Runner loads gates from <cwd>/.claude/gates/*.yaml, then ~/.claude/gates/*.yaml
+Runner loads gates from <cwd>/.claude/gates/*.yaml (trusted projects only),
+then ~/.claude/gates/*.yaml
     ↓
 For each gate (alphabetically, project dir first):
   - Check hook matches
@@ -81,6 +82,11 @@ cp "$(ls -d ~/.claude/plugins/cache/superpowers-gates/superpowers-gates/*/ | tai
 ```
 If you previously registered the runner manually in settings.json, remove that
 entry after upgrading — otherwise every gate fires twice.
+
+> **Security note:** Project gates run arbitrary bash from the repository on
+> hook events including SessionStart. They are loaded ONLY for trusted
+> projects: add the repo's absolute path to `~/.claude/gates-trusted`, or set
+> `GATES_TRUST_PROJECT=1`. Treat this like Claude Code project hooks.
 
 **Developers?** Clone the framework:
 ```bash

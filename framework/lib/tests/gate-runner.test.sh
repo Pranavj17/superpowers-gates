@@ -348,13 +348,10 @@ make_input_with_cwd() { # $1=tool_name $2=cwd
     printf '{"tool_name":"%s","cwd":"%s","tool_input":{"command":"ls"}}' "$1" "$2"
 }
 
-test_project_gates_load_and_win() {
-    setup_test_environment
-    local proj_dir
-    proj_dir=$(mktemp -d)
+# write_project_gate <proj_dir> — drops a "Project gate wins" deny gate
+write_project_gate() {
+    local proj_dir="$1"
     mkdir -p "$proj_dir/.claude/gates"
-    # Global gate allows; project gate denies. Project must win.
-    create_test_gate "z-global" "PreToolUse" "Bash" "true" "ask" "Global gate"
     cat > "$proj_dir/.claude/gates/a-project.yaml" <<'EOF'
 name: "a-project"
 description: "project gate"
@@ -365,9 +362,51 @@ condition: |
 decision: "deny"
 message: "Project gate wins"
 EOF
+}
+
+test_project_gates_load_and_win() {
+    setup_test_environment
+    local proj_dir
+    proj_dir=$(mktemp -d)
+    write_project_gate "$proj_dir"
+    # Global gate allows; project gate denies. Project must win — but only
+    # once the project is trusted (FIX 1): write its cwd into the sandboxed
+    # HOME's trust file.
+    create_test_gate "z-global" "PreToolUse" "Bash" "true" "ask" "Global gate"
+    mkdir -p "$TEST_HOME/.claude"
+    printf '%s\n' "$proj_dir" > "$TEST_HOME/.claude/gates-trusted"
     local result
     result=$(make_input_with_cwd "Bash" "$proj_dir" | bash "$RUNNER_PATH" "PreToolUse" || echo "")
     assert_contains "test_project_gates_load_and_win" "$result" "Project gate wins"
+    rm -rf "$proj_dir"
+    teardown_test_environment
+}
+
+test_project_gates_ignored_when_untrusted() {
+    setup_test_environment
+    local proj_dir
+    proj_dir=$(mktemp -d)
+    write_project_gate "$proj_dir"
+    # Global gate allows; project gate (untrusted) must be skipped entirely,
+    # so the global "ask" gate should win instead.
+    create_test_gate "z-global" "PreToolUse" "Bash" "true" "ask" "Global gate"
+    local result
+    result=$(make_input_with_cwd "Bash" "$proj_dir" | bash "$RUNNER_PATH" "PreToolUse" || echo "")
+    assert_not_contains "test_project_gates_ignored_when_untrusted: project gate skipped" "$result" "Project gate wins"
+    assert_contains "test_project_gates_ignored_when_untrusted: global gate still wins" "$result" "Global gate"
+    rm -rf "$proj_dir"
+    teardown_test_environment
+}
+
+test_project_gates_honored_via_env_flag() {
+    setup_test_environment
+    local proj_dir
+    proj_dir=$(mktemp -d)
+    write_project_gate "$proj_dir"
+    create_test_gate "z-global" "PreToolUse" "Bash" "true" "ask" "Global gate"
+    local result
+    result=$(make_input_with_cwd "Bash" "$proj_dir" | GATES_TRUST_PROJECT=1 bash "$RUNNER_PATH" "PreToolUse" || echo "")
+    assert_contains "test_project_gates_honored_via_env_flag" "$result" "Project gate wins"
     rm -rf "$proj_dir"
     teardown_test_environment
 }
@@ -509,6 +548,8 @@ main() {
     test_first_match_wins || true
     test_star_matcher_matches_all_tools || true
     test_project_gates_load_and_win || true
+    test_project_gates_ignored_when_untrusted || true
+    test_project_gates_honored_via_env_flag || true
     test_stop_block_dialect || true
     test_prompt_inject_uses_condition_stdout || true
     test_sessionstart_matcher_uses_source || true

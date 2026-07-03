@@ -362,7 +362,7 @@ severity: "low"
 ## Condition Gotchas (check every gate against these)
 
 1. **Stdin is consumed once.** If the condition calls `jq` more than once, capture stdin first: `input=$(cat)` then `jq ... <<< "$input"` — otherwise the second `jq` reads an empty stream and the gate silently never matches.
-2. **Gates are scoped by placement, not by field.** The runner loads project gates from `<cwd>/.claude/gates/*.yaml` first, then global gates from `~/.claude/gates/*.yaml` (first triggered gate wins). Drop a gate in the repo's `.claude/gates/` to scope it there instead of path-guarding the condition with a `case "$file" in /path/to/repo/*) ;; *) exit 1 ;; esac` guard.
+2. **Gates are scoped by placement, not by field.** The runner loads project gates from `<cwd>/.claude/gates/*.yaml` first, then global gates from `~/.claude/gates/*.yaml` (first triggered gate wins). Drop a gate in the repo's `.claude/gates/` to scope it there instead of path-guarding the condition with a `case "$file" in /path/to/repo/*) ;; *) exit 1 ;; esac` guard. **Security:** project gates run arbitrary bash on every hook event (including SessionStart), so the runner only loads them for trusted projects — add the repo's absolute path to `~/.claude/gates-trusted`, or set `GATES_TRUST_PROJECT=1`. An untrusted repo's `.claude/gates/*.yaml` files are silently skipped.
 3. **Test the condition before saving:** pipe a realistic hook JSON through it and assert the exit code for both a triggering and a non-triggering input.
 4. **`inject` gates: whatever the condition prints on exit 0 becomes the injected context.** The `message:` field is ignored for `inject` — stdout is the payload, so the condition is both predicate and generator (e.g. print boot info, then exit 0).
 

@@ -23,10 +23,27 @@ export GATES_LIB_DIR
 GLOBAL_GATES_DIR="${HOME}/.claude/gates"
 PROJECT_CWD=$(echo "$INPUT_JSON" | jq -r '.cwd // empty' 2>/dev/null || echo "")
 
+# is_project_trusted <cwd> — project gates run arbitrary bash from the repo
+# on every hook event (including SessionStart), so only load them for
+# trusted projects. Trusted = GATES_TRUST_PROJECT=1 is set, OR the resolved
+# cwd appears as a line in ~/.claude/gates-trusted. Fail-safe: any error
+# reading the trust file is treated as untrusted (skip project gates).
+is_project_trusted() {
+    local cwd="$1"
+    [ -z "$cwd" ] && return 1
+    [ "${GATES_TRUST_PROJECT:-}" = "1" ] && return 0
+    local trust_file="${HOME}/.claude/gates-trusted"
+    if [ -f "$trust_file" ] && grep -qxF "$cwd" "$trust_file" 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
 # Ordered gate list: project gates first, then global (alphabetical each)
 gate_files=()
 if [ -n "$PROJECT_CWD" ] && [ -d "$PROJECT_CWD/.claude/gates" ] \
-   && [ "$PROJECT_CWD/.claude/gates" != "$GLOBAL_GATES_DIR" ]; then
+   && [ "$PROJECT_CWD/.claude/gates" != "$GLOBAL_GATES_DIR" ] \
+   && is_project_trusted "$PROJECT_CWD"; then
     while IFS= read -r f; do gate_files+=("$f"); done \
         < <(find "$PROJECT_CWD/.claude/gates" -maxdepth 1 -name "*.yaml" -type f | sort)
 fi
