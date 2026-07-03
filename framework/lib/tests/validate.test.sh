@@ -97,6 +97,58 @@ test_non_executable_condition_caught() {
         "validate_gate '$FIXTURES_DIR/non-executable-condition.yaml'"
 }
 
+# Test 6: Stop + block + max_blocks is legal (v2 dialect table)
+test_stop_block_gate_valid() {
+    local f=$(mktemp -t gate-XXXX.yaml)
+    cat > "$f" <<'EOF'
+name: "stop-ok"
+description: "stop gate"
+hook: "Stop"
+matcher: "*"
+condition: |
+  true
+decision: "block"
+message: "keep going"
+max_blocks: 2
+EOF
+    assert_exit_0 "test_stop_block_gate_valid" "validate_gate '$f'"
+    rm -f "$f"
+}
+
+# Test 7: deny is not legal for Stop (v2 dialect table)
+test_deny_on_stop_invalid() {
+    local f=$(mktemp -t gate-XXXX.yaml)
+    cat > "$f" <<'EOF'
+name: "stop-bad"
+description: "illegal decision"
+hook: "Stop"
+matcher: "*"
+condition: |
+  true
+decision: "deny"
+message: "nope"
+EOF
+    assert_exit_nonzero "test_deny_on_stop_invalid" "validate_gate '$f'"
+    rm -f "$f"
+}
+
+# Test 8: inject is legal for UserPromptSubmit (v2 dialect table)
+test_inject_on_userpromptsubmit_valid() {
+    local f=$(mktemp -t gate-XXXX.yaml)
+    cat > "$f" <<'EOF'
+name: "router-ok"
+description: "prompt router"
+hook: "UserPromptSubmit"
+matcher: "*"
+condition: |
+  echo ctx
+decision: "inject"
+message: "fallback"
+EOF
+    assert_exit_0 "test_inject_on_userpromptsubmit_valid" "validate_gate '$f'"
+    rm -f "$f"
+}
+
 # =============================================================================
 # Main: Run all tests and report results
 # =============================================================================
@@ -113,6 +165,9 @@ main() {
     test_invalid_hook_fails || true
     test_invalid_decision_fails || true
     test_non_executable_condition_caught || true
+    test_stop_block_gate_valid || true
+    test_deny_on_stop_invalid || true
+    test_inject_on_userpromptsubmit_valid || true
 
     echo
     echo "======================================================================="

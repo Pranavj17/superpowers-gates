@@ -117,6 +117,117 @@ severity: "medium"
 
 ---
 
+## Flagship: Stop Run Tests
+
+Blocks ending the turn when code files were edited this session but no test
+command has run yet — a definition-of-done nudge, not a permission check.
+
+```yaml
+name: "stop-run-tests"
+description: "Block ending the turn when code files were edited but no test command ran"
+hook: "Stop"
+matcher: "*"
+condition: |
+  input=$(cat)
+  tp=$(jq -r '.transcript_path // empty' <<< "$input")
+  [ -n "$tp" ] && [ -f "$tp" ] || exit 1
+  source "$GATES_LIB_DIR/transcript-helpers.sh"
+  th_edited_files_matching "$tp" '\.(ex|exs|py|js|ts)"' >/dev/null || exit 1
+  th_ran_command_matching "$tp" '(mix test|pytest|npm test|go test)' && exit 1
+  exit 0
+decision: "block"
+message: "Code files were edited this session but no test command has run. Run the tests before finishing."
+tags: ["orchestration", "definition-of-done"]
+severity: "medium"
+```
+
+**Triggers when:** `Stop` fires, the transcript shows an edited source file this session, and no matching test command has run since  
+**Decision:** Blocks the stop — Claude sees the reason and continues the turn  
+**Uses:** `transcript-helpers.sh` (`th_edited_files_matching`, `th_ran_command_matching`) to read the transcript instead of tracking state itself  
+**Note:** The runner's stop-loop guard auto-allows a repeat `Stop` within the same turn (default `max_blocks: 1`), so this can't nag forever
+
+---
+
+## Flagship: Prompt Router
+
+Injects workflow instructions into the conversation when the user's prompt
+contains a tracker URL — a generic template for the Asana/Sentry→RCA router.
+
+```yaml
+name: "prompt-router"
+description: "Inject workflow instructions when the prompt contains a tracker URL (template)"
+hook: "UserPromptSubmit"
+matcher: "*"
+condition: |
+  p=$(jq -r '.prompt // .user_input // empty')
+  echo "$p" | grep -qE 'app\.asana\.com/[0-9]+/|sentry\.[a-z.]+/organizations/[^/]+/issues/' || exit 1
+  echo "WORKFLOW TRIGGER: tracker URL detected in this prompt. Execute the project's full RCA workflow automatically without waiting for confirmation."
+decision: "inject"
+message: "tracker URL detected"
+tags: ["orchestration", "routing"]
+severity: "low"
+```
+
+**Triggers when:** The submitted prompt contains an Asana task URL or a Sentry issue URL  
+**Decision:** Injects context — the condition's stdout (the `WORKFLOW TRIGGER: ...` line), not `message`, becomes the `additionalContext`  
+**Use case:** Auto-route tracker links to a debugging workflow without the user having to say "debug rca"
+
+---
+
+## Flagship: Boot Info
+
+Injects project boot context on a fresh session start by reading a
+project-local `.claude/BOOT.md` file, if one exists.
+
+```yaml
+name: "boot-info"
+description: "Inject project boot context on fresh session start (reads .claude/BOOT.md if present)"
+hook: "SessionStart"
+matcher: "startup"
+condition: |
+  input=$(cat)
+  cwd=$(jq -r '.cwd // empty' <<< "$input")
+  [ -n "$cwd" ] && [ -f "$cwd/.claude/BOOT.md" ] || exit 1
+  cat "$cwd/.claude/BOOT.md"
+decision: "inject"
+message: "boot context"
+tags: ["orchestration", "context"]
+severity: "low"
+```
+
+**Triggers when:** `SessionStart` fires with `source: "startup"` and the cwd has a `.claude/BOOT.md`  
+**Decision:** Injects context — the file's contents (printed by the condition) become the `additionalContext`, verbatim  
+**Use case:** Give every fresh session project-specific boot info without a manual "load context" step
+
+---
+
+## Flagship: Format Nudge
+
+Reminds Claude to run the formatter right after it edits a source file.
+
+```yaml
+name: "format-nudge"
+description: "After editing an Elixir file, remind Claude to run mix format"
+hook: "PostToolUse"
+matcher: "Write|Edit"
+condition: |
+  f=$(jq -r '.tool_input.file_path // empty')
+  case "$f" in
+    *.ex|*.exs) echo "Reminder: you edited $f — run 'mix format' before finishing." ;;
+    *) exit 1 ;;
+  esac
+decision: "inject"
+message: "formatting reminder"
+tags: ["orchestration", "feedback"]
+severity: "low"
+```
+
+**Triggers when:** A `Write` or `Edit` targets a `.ex`/`.exs` file  
+**Decision:** Injects context — the printed reminder becomes `additionalContext`  
+**Use case:** Lightweight per-language template for a "run the formatter" nudge (swap the extension/command for other stacks)
+
+---
+
 ## Custom Gate: Env File Protection
 
 Prevent writing `.env` or `.env.local` files.
