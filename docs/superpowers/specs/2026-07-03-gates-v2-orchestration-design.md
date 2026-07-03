@@ -90,7 +90,7 @@ shipped versions disagree on the field name; support both).
 |---|---|
 | `framework/lib/gates/runner.sh` | project-dir loading; per-event emitter functions; stdout capture for inject; stop-loop guard; per-event match key |
 | `framework/lib/gates/validate.sh` + `skill/mcp_server.py` | dialect legality table (hook × decision); new optional field `max_blocks` |
-| `framework/lib/gates/transcript-helpers.sh` (new) | jq helpers over `transcript_path` / `tool_calls`: `edited_code_files`, `ran_command_matching <regex>`, `tools_since_last <regex>` |
+| `framework/lib/gates/transcript-helpers.sh` (new) | jq helpers over `transcript_path` / `tool_calls`, all prefixed `th_` to match the shipped `helpers.sh` convention: `th_edited_files_matching <ere>`, `th_ran_command_matching <ere>`, `th_tools_since_last <marker_ere>` (implemented as part of the v1.2 fix batch — prints entries after the last marker match, or all entries if the marker never matched) |
 | `hooks/hooks.json` | register runner for all six events |
 | `framework/lib/examples/` | 4 new flagship gates (below) |
 | `framework/lib/tests/` | per-event emitter tests, precedence tests, dialect-legality tests, fixtures per event |

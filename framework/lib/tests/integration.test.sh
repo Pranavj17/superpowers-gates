@@ -147,21 +147,35 @@ test_flagship_examples() {
     local pass=true
     local out
 
-    # --- stop-run-tests (Stop): .ex Edit + no test command in transcript => block ---
+    # --- stop-run-tests (Stop): since-scoped — block only if a code edit
+    # happened AFTER the last test command (or no test ever ran) ---
     local sid_trigger="flagship-stop-trigger"
     local sid_notrigger="flagship-stop-notrigger"
+    local sid_edit_then_test="flagship-stop-edit-then-test"
     rm -f "${TMPDIR:-/tmp}/gates-stop-${sid_trigger}-stop-run-tests"
     rm -f "${TMPDIR:-/tmp}/gates-stop-${sid_notrigger}-stop-run-tests"
+    rm -f "${TMPDIR:-/tmp}/gates-stop-${sid_edit_then_test}-stop-run-tests"
 
+    # test-then-edit: mock-transcript.jsonl ends with an Edit of other.ex
+    # AFTER its "npm test" line => block (edit since last test).
     local stop_trigger_input
     stop_trigger_input=$(jq -n --arg tp "$FIXTURES_DIR/mock-transcript.jsonl" --arg sid "$sid_trigger" \
         '{session_id: $sid, transcript_path: $tp, stop_hook_active: false}')
     out=$(echo "$stop_trigger_input" | bash "$LIB_DIR/gates/runner.sh" Stop 2>/dev/null || true)
     assert_contains "$out" '"decision":"block"' || pass=false
 
+    # no transcript at all => allow (nothing to scope).
     local stop_notrigger_input
     stop_notrigger_input=$(jq -n --arg sid "$sid_notrigger" '{session_id: $sid, stop_hook_active: false}')
     out=$(echo "$stop_notrigger_input" | bash "$LIB_DIR/gates/runner.sh" Stop 2>/dev/null || true)
+    assert_empty "$out" || pass=false
+
+    # edit-then-test: mock-transcript-edit-then-test.jsonl ends with "mix
+    # test" AFTER the Edit => no block (tests already covered the edit).
+    local stop_edit_then_test_input
+    stop_edit_then_test_input=$(jq -n --arg tp "$FIXTURES_DIR/mock-transcript-edit-then-test.jsonl" --arg sid "$sid_edit_then_test" \
+        '{session_id: $sid, transcript_path: $tp, stop_hook_active: false}')
+    out=$(echo "$stop_edit_then_test_input" | bash "$LIB_DIR/gates/runner.sh" Stop 2>/dev/null || true)
     assert_empty "$out" || pass=false
 
     # --- prompt-router (UserPromptSubmit): tracker URL => inject ---
