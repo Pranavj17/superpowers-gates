@@ -120,13 +120,19 @@ bash ~/.claude/gates-framework/framework/lib/gates/validate.sh
 
 ### 2. Copy Example Gates
 
-Three production-ready gates are included:
+Seven production-ready gates are included — the original three PreToolUse/
+PostToolUse gates, plus four flagship gates covering the newer
+UserPromptSubmit/SessionStart/Stop events added in v1.2:
 
 | Gate | Purpose | Hook | Decision |
 |------|---------|------|----------|
 | `no-destructive-db.yaml` | Prevent `mix ecto.{create,drop,reset}` | PreToolUse | ask |
 | `no-docs-violation.yaml` | Enforce `.md` files in `/docs` | PreToolUse | deny |
 | `audit-log.yaml` | Log all tool executions | PostToolUse | allow |
+| `stop-run-tests.yaml` | Block ending the turn when code was edited since the last test run | Stop | block |
+| `prompt-router.yaml` | Inject workflow instructions when the prompt contains a tracker URL | UserPromptSubmit | inject |
+| `boot-info.yaml` | Inject project boot context on fresh session start | SessionStart | inject |
+| `format-nudge.yaml` | Nudge to run the formatter after editing a source file | PostToolUse | inject |
 
 ### 3. Register in Claude Code
 

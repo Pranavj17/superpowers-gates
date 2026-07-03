@@ -10,7 +10,7 @@
 set -euo pipefail
 
 # Valid enum values
-readonly VALID_HOOKS=("PreToolUse" "PostToolUse" "UserPromptSubmit" "SessionStart" "Stop" "SubagentStop" "SessionEnd")
+readonly VALID_HOOKS=("PreToolUse" "PostToolUse" "UserPromptSubmit" "SessionStart" "Stop" "SubagentStop")
 readonly VALID_DECISIONS=("allow" "deny" "ask" "block" "inject" "transform")
 readonly VALID_SEVERITIES=("low" "medium" "high" "critical")
 
@@ -114,15 +114,12 @@ validate_gate() {
         UserPromptSubmit:block|UserPromptSubmit:inject) ;;
         SessionStart:inject) ;;
         Stop:block|SubagentStop:block) ;;
-        SessionEnd:*)
-            echo "ERROR: SessionEnd gates are side-effect only; no decision applies in $filename"
-            return 1 ;;
         *)
             echo "ERROR: Decision '$decision' is not valid for hook '$hook' in $filename"
             return 1 ;;
     esac
 
-    # Step 5c: optional max_blocks must be a positive integer (Stop/SubagentStop only)
+    # Step 5c: optional max_blocks must be a positive integer (applies to any hook)
     local max_blocks
     max_blocks=$(yq -r '.max_blocks // ""' "$gate_file" 2>/dev/null) || max_blocks=""
     if [[ -n "$max_blocks" ]] && [[ "$max_blocks" != "null" ]]; then

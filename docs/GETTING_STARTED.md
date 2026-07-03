@@ -70,13 +70,17 @@ bash ~/.claude/gates-framework/lib/gates/validate.sh ~/.claude/gates/my-custom-g
 ## How Gates Work
 
 1. Claude Code fires a hook (e.g., `PreToolUse`)
-2. Hook runner loads all `.yaml` files from `~/.claude/gates/`
+2. Hook runner loads all `.yaml` files from `~/.claude/gates/` (and, for
+   trusted projects, `<cwd>/.claude/gates/` first — see the security note in
+   [SCHEMA_REFERENCE.md#gate-loading-order](SCHEMA_REFERENCE.md#gate-loading-order))
 3. For each gate (alphabetically):
    - Check if hook matches
    - Check if tool matches (regex)
    - Evaluate condition (bash code)
 4. First matching gate triggers:
-   - Decision (ask/deny/allow) is returned to Claude Code
+   - The decision it emits is event-aware — see the
+     [Decision dialects table](SCHEMA_REFERENCE.md#decision-dialects) for
+     which values are legal per hook and what the runner emits
 5. No gate matches → allow action (fail-open)
 
 ## File Structure
