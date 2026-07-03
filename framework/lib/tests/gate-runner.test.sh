@@ -523,6 +523,19 @@ EOF
     teardown_test_environment
 }
 
+# Test: SubagentStop matcher:"*" gate fires even when the input has no
+# agent_type field — missing/empty agent_type must map to "__any__"
+# (match-all), not empty, or the pre-loop tool_key guard kills every
+# SubagentStop gate (FIX 3).
+test_subagentstop_matcher_star_fires_without_agent_type() {
+    setup_test_environment
+    create_test_gate "subagent-any" "SubagentStop" "*" "true" "block" "Subagent stopped"
+    local result
+    result=$(printf '{"session_id":"s1","stop_hook_active":false}' | bash "$RUNNER_PATH" "SubagentStop" || echo "")
+    assert_contains "test_subagentstop_matcher_star_fires_without_agent_type" "$result" '"decision":"block"'
+    teardown_test_environment
+}
+
 # Test: Stop guard fails OPEN (does not block) when the counter file exists
 # but cannot be read — guard state is unknown, so the runner must never
 # re-block on unknown state (FIX 2a).
@@ -613,6 +626,7 @@ main() {
     test_posttooluse_allow_is_silent_noop || true
     test_stop_guard_allows_second_attempt || true
     test_stop_guard_max_blocks_two || true
+    test_subagentstop_matcher_star_fires_without_agent_type || true
     test_stop_guard_fails_open_when_counter_unreadable || true
     test_stop_guard_sanitizes_gate_name_with_slash || true
 

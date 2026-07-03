@@ -63,7 +63,14 @@ match_key() {
     case "$HOOK_EVENT" in
         PreToolUse|PostToolUse) echo "$INPUT_JSON" | jq -r '.tool_name // .tool // empty' 2>/dev/null || echo "" ;;
         SessionStart)           echo "$INPUT_JSON" | jq -r '.source // empty' 2>/dev/null || echo "" ;;
-        SubagentStop)           echo "$INPUT_JSON" | jq -r '.agent_type // empty' 2>/dev/null || echo "" ;;
+        SubagentStop)
+            at=$(echo "$INPUT_JSON" | jq -r '.agent_type // empty' 2>/dev/null || echo "")
+            # Missing/empty agent_type must not empty out tool_key — that
+            # would trip the pre-loop `[ -z "$tool_key" ] && exit 0` guard
+            # and silently kill every SubagentStop gate, even matcher:"*".
+            [ -z "$at" ] && at="__any__"
+            echo "$at"
+            ;;
         Stop|UserPromptSubmit)  echo "__any__" ;;
         *)                      echo "" ;;
     esac
